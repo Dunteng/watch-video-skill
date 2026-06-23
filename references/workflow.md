@@ -59,6 +59,14 @@ Remote URL:
 python3 -m watchvideo analyze "https://example.com/video" -o "$TASK_WORKDIR/analysis/remote-video"
 ```
 
+For remote URLs, evidence acquisition order is mandatory:
+
+1. Run `watchvideo analyze`, which tries `yt-dlp`.
+2. If `yt-dlp` fails, the CLI tries public share-page/SSR `play_addr` URLs.
+3. If both fail, stop and ask for one of: user-confirmed browser cookies, a local video file, or an accessible direct video URL.
+
+Do not replace missing video evidence with the page title, description, search results, public subtitles for a similar title, or same-topic articles. Those sources can explain the blocker or help craft a prompt after evidence exists; they are not video evidence.
+
 Typical higher-signal run:
 
 ```bash

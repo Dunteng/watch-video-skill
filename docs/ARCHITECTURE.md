@@ -7,7 +7,7 @@
 ```text
 source
   -> classify_source
-  -> YtDlpClient 或本地文件
+  -> YtDlpClient、分享页 play_addr 兜底或本地文件
   -> FfmpegClient.probe
   -> 字幕加载或 WhisperTranscriber 或 WhisperCppAutoSetup/WhisperCppTranscriber
   -> FfmpegClient.extract_keyframes，可限制数量
@@ -25,7 +25,7 @@ source
   编排层。负责决定先下载字幕、再下载视频、再加载字幕或转写、必要时准备 `whisper.cpp`、最后抽关键帧。这里不直接写下载、转写或抽帧细节。
 
 - `watchvideo/downloader.py`
-  `yt-dlp` 适配层。负责平台字幕下载和网络视频下载。
+  下载适配层。优先使用 `yt-dlp` 下载字幕和视频；视频下载失败时，会尝试解析公开分享页/SSR 里的 `play_addr` 直链。这里不读取浏览器 cookies。
 
 - `watchvideo/media.py`
   `ffmpeg` / `ffprobe` 适配层。负责读取视频元信息、抽候选帧、保存代表帧。
@@ -57,6 +57,8 @@ source
 ## 大模型能力边界
 
 仓库代码本身不调用 OpenAI、Claude、Gemini 或其他云端 LLM API。
+
+仓库也不把视频标题、简介、搜索结果或同主题网页当作视频证据。远程视频必须先拿到 MP4、字幕/转写或关键帧；拿不到时应报告下载阻塞，而不是生成内容总结。
 
 当前大模型相关能力分两类：
 

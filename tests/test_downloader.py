@@ -1,0 +1,82 @@
+from pathlib import Path
+from tempfile import TemporaryDirectory
+import unittest
+
+from watchvideo.commands import CommandError, CommandResult
+from watchvideo.downloader import YtDlpClient, extract_play_addr_urls
+
+
+class FailingRunner:
+    def run(self, args, cwd=None, check=True, text=True):
+        result = CommandResult(
+            args=list(args),
+            returncode=1,
+            stdout="",
+            stderr="fresh cookies required",
+        )
+        raise CommandError(result)
+
+
+class FakeSharePageClient:
+    def __init__(self, html="", video_bytes=b"video"):
+        self.html = html
+        self.video_bytes = video_bytes
+        self.fetched_pages = []
+        self.downloaded_urls = []
+
+    def fetch_text(self, url):
+        self.fetched_pages.append(url)
+        return self.html
+
+    def download(self, url, output_path):
+        self.downloaded_urls.append(url)
+        Path(output_path).write_bytes(self.video_bytes)
+
+
+class DownloaderTests(unittest.TestCase):
+    def test_extract_play_addr_urls_from_ssr_json(self):
+        html = r'''
+        <script id="RENDER_DATA">
+        {"video":{"play_addr":{"url_list":["https:\/\/v3-web.douyinvod.com\/demo.mp4?x=1"]}}}
+        </script>
+        '''
+
+        urls = extract_play_addr_urls(html)
+
+        self.assertEqual(urls, ["https://v3-web.douyinvod.com/demo.mp4?x=1"])
+
+    def test_fetch_remote_falls_back_to_share_page_play_addr_when_ytdlp_fails(self):
+        html = r'{"play_addr":{"url_list":["https:\/\/v3-web.douyinvod.com\/fallback.mp4"]}}'
+        page_client = FakeSharePageClient(html=html, video_bytes=b"mp4")
+
+        with TemporaryDirectory() as tmp:
+            video_path = YtDlpClient(
+                runner=FailingRunner(),
+                page_client=page_client,
+            ).fetch_remote(
+                "https://www.douyin.com/share/video/123",
+                output_dir=Path(tmp),
+            )
+
+            self.assertEqual(video_path.name, "share-page-play-addr.mp4")
+            self.assertEqual(video_path.read_bytes(), b"mp4")
+
+        self.assertEqual(page_client.fetched_pages, ["https://www.douyin.com/share/video/123"])
+        self.assertEqual(page_client.downloaded_urls, ["https://v3-web.douyinvod.com/fallback.mp4"])
+
+    def test_fetch_remote_failure_mentions_cookies_or_local_file(self):
+        page_client = FakeSharePageClient(html="<html>no video</html>")
+
+        with TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(FileNotFoundError, "cookies|本地视频"):
+                YtDlpClient(
+                    runner=FailingRunner(),
+                    page_client=page_client,
+                ).fetch_remote(
+                    "https://www.douyin.com/share/video/123",
+                    output_dir=Path(tmp),
+                )
+
+
+if __name__ == "__main__":
+    unittest.main()

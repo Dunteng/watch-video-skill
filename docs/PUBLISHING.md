@@ -40,7 +40,7 @@ python3 -m watchvideo doctor
 运行 skill 行为验证：
 
 ```text
-按 evals/skill_scenarios.md 抽测至少场景 1、2、4、5、7。
+按 evals/skill_scenarios.md 抽测至少场景 1、1B、2、4、5、7。
 ```
 
 检查 Git 状态：

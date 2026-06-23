@@ -18,6 +18,8 @@ python3 -m watchvideo doctor
 python3 -m watchvideo analyze "https://example.com/video" -o analysis/demo
 ```
 
+远程视频取证顺序是固定的：先 `yt-dlp`，失败后解析公开分享页/SSR 里的 `play_addr`，再失败才要求用户确认浏览器 cookies、提供本地视频或可访问直链。**不要用标题、简介、搜索结果或同主题资料替代视频证据。**
+
 分析本地文件：
 
 ```bash
