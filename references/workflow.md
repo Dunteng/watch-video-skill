@@ -4,25 +4,24 @@ Use this reference when starting a new video analysis or choosing which `watchvi
 
 ## 1. Locate The CLI
 
-Prefer one of these forms:
+Use the directory that contains this skill's `SKILL.md` as the project root. It should also contain `watchvideo/cli.py`.
 
 ```bash
+cd <watch-video-skill-repo>
 python3 -m watchvideo doctor
+```
+
+If the package has been installed into the environment, this form may also work:
+
+```bash
 watchvideo doctor
 ```
 
-If neither works and this is the user's machine, check the known checkout:
-
-```bash
-cd /Users/dt/WORK/watchVideo
-python3 -m watchvideo doctor
-```
-
-If no checkout or executable exists, tell the user the CLI is unavailable and ask for the project path or installation method.
+If neither works, tell the user the skill repository or package is unavailable and ask for the installed skill path or clone URL.
 
 ## 2. Prepare Output Path
 
-Create a readable output slug under `analysis/` when working inside the checkout:
+Create a readable output slug under `analysis/` when working inside the skill repository:
 
 ```text
 analysis/<source-or-topic-slug>

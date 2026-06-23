@@ -9,7 +9,7 @@ description: Use when the user asks to watch, analyze, summarize, transcribe, OC
 
 Use the `watchvideo` CLI to turn a local video file or supported video URL into Agent-readable materials, then synthesize a grounded summary from the generated report, transcript, and keyframes.
 
-The core boundary: the CLI prepares evidence; the Agent reads that evidence, writes the final understanding, and persists it back to the report when requested or when a report file exists.
+This skill repository is self-contained: it includes the `watchvideo` Python package, tests, docs, and helper scripts. The core boundary is that the CLI prepares evidence; the Agent reads that evidence, writes the final understanding, and persists it back to the report when requested or when a report file exists.
 
 ## Routing Boundaries
 
@@ -28,7 +28,7 @@ Do not use this skill for:
 
 ## Workflow
 
-1. Locate the CLI. Prefer `python3 -m watchvideo` inside a checkout that contains `watchvideo/cli.py`; otherwise try `watchvideo` on `PATH`. On this machine, if needed, check `/Users/dt/WORK/watchVideo`.
+1. Locate the skill repository directory, meaning the directory that contains this `SKILL.md` and `watchvideo/cli.py`. Run CLI commands from that directory with `python3 -m watchvideo ...`.
 2. Run or inspect analysis. For command details, read `references/workflow.md`.
 3. Read the generated artifacts before summarizing. For artifact priority and output rules, read `references/artifacts.md`.
 4. If tools, subtitles, OCR, downloads, or long-running processes fail, read `references/troubleshooting.md`.

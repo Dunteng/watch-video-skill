@@ -40,10 +40,10 @@ Keep wording in Chinese unless the user asks otherwise.
 
 When `report.md` exists, final understanding should be written into the `## 视频内容总结` section. If the section does not exist, insert it before `## 关键帧` or before the transcript section.
 
-Use the helper script from the skill directory:
+Use the helper script from the skill repository root:
 
 ```bash
-python3 /Users/dt/.codex/skills/watch-video/scripts/update_report_summary.py \
+python3 scripts/update_report_summary.py \
   analysis/demo/report.md \
   --summary-file /tmp/video-summary.md
 ```
@@ -51,17 +51,11 @@ python3 /Users/dt/.codex/skills/watch-video/scripts/update_report_summary.py \
 Or pipe summary text through stdin:
 
 ```bash
-printf '%s\n' "总结内容" | python3 /Users/dt/.codex/skills/watch-video/scripts/update_report_summary.py analysis/demo/report.md
+printf '%s\n' "总结内容" | python3 scripts/update_report_summary.py analysis/demo/report.md
 ```
 
 Do not overwrite unrelated sections such as warnings, keyframe hints, OCR, or transcript.
 
 ## Obsidian Notes
 
-If the user asks for an Obsidian note, use the user's vault path when available:
-
-```text
-/Users/dt/Documents/obsidian-vault
-```
-
-Include source URL, title if known, processed date, tags, core conclusion, evidence excerpts, and personal整理. Respect current user instructions before creating or modifying files outside the current workspace.
+If the user asks for an Obsidian note, use the user's configured vault path when available. Include source URL, title if known, processed date, tags, core conclusion, evidence excerpts, and personal整理. Respect current user instructions before creating or modifying files outside the current workspace.
