@@ -9,7 +9,7 @@ from .models import AnalysisReport, Source, SubtitleCue
 from .ocr import TesseractOcr
 from .sources import classify_source
 from .subtitles import collect_subtitle_files, cues_to_plain_text, load_subtitle_file
-from .transcription import WhisperCppTranscriber, WhisperTranscriber
+from .transcription import WhisperCppAutoSetup, WhisperCppTranscriber, WhisperTranscriber
 
 
 class VideoAnalyzer:
@@ -19,13 +19,17 @@ class VideoAnalyzer:
         media_client: FfmpegClient | None = None,
         transcriber: WhisperTranscriber | None = None,
         whisper_cpp_transcriber: WhisperCppTranscriber | None = None,
+        whisper_cpp_setup: WhisperCppAutoSetup | None = None,
         ocr_engine: TesseractOcr | None = None,
+        auto_transcribe_setup: bool = True,
     ):
         self.downloader = downloader or YtDlpClient()
         self.media_client = media_client or FfmpegClient()
         self.transcriber = transcriber or WhisperTranscriber()
         self.whisper_cpp_transcriber = whisper_cpp_transcriber or WhisperCppTranscriber()
+        self.whisper_cpp_setup = whisper_cpp_setup or WhisperCppAutoSetup()
         self.ocr_engine = ocr_engine or TesseractOcr(enabled=True)
+        self.auto_transcribe_setup = auto_transcribe_setup
 
     def analyze(
         self,
@@ -141,7 +145,21 @@ class VideoAnalyzer:
 
         unavailable_reason = getattr(self.whisper_cpp_transcriber, "unavailable_reason", lambda: None)
         reason = unavailable_reason()
-        if reason:
+        has_config = getattr(self.whisper_cpp_transcriber, "has_config", lambda: True)
+        if reason and self.auto_transcribe_setup and not has_config():
+            try:
+                setup_transcriber = self.whisper_cpp_setup.ensure_transcriber(
+                    prompt=getattr(self.whisper_cpp_transcriber, "prompt", None)
+                )
+                cues = setup_transcriber.transcribe(
+                    video_path=video_path,
+                    output_dir=output_dir / "transcript",
+                    language=language,
+                )
+            except (CommandError, FileNotFoundError, OSError) as exc:
+                warnings.append(f"自动准备 whisper.cpp 失败: {exc}")
+                cues = []
+        elif reason:
             warnings.append(reason)
             cues = []
         else:

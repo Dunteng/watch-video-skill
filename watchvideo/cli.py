@@ -11,7 +11,7 @@ from .ocr import TesseractOcr
 from .processes import render_process_report, scan_processes
 from .reporting import write_json_report, write_markdown_report
 from .summarizer import render_summary_prompt
-from .transcription import WhisperCppTranscriber
+from .transcription import WhisperCppAutoSetup, WhisperCppTranscriber
 
 
 DOCTOR_TOOLS = (
@@ -19,6 +19,9 @@ DOCTOR_TOOLS = (
     ("yt-dlp", True),
     ("ffmpeg", True),
     ("ffprobe", True),
+    ("git", False),
+    ("bash", False),
+    ("cmake", False),
     ("whisper", False),
     ("tesseract", False),
 )
@@ -53,6 +56,20 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("--whisper-cpp-bin", default=None, help="whisper.cpp 的 whisper-cli 路径")
     analyze.add_argument("--whisper-model", default=None, help="whisper.cpp 模型路径")
     analyze.add_argument("--whisper-prompt", default=None, help="传给 whisper.cpp 的提示词")
+    analyze.add_argument("--tools-dir", default=None, help="自动准备 whisper.cpp 时使用的工具目录")
+    analyze.add_argument(
+        "--auto-transcribe-setup",
+        dest="auto_transcribe_setup",
+        action="store_true",
+        help="缺少转写工具时自动在工具目录准备 whisper.cpp",
+    )
+    analyze.add_argument(
+        "--no-auto-transcribe-setup",
+        dest="auto_transcribe_setup",
+        action="store_false",
+        help="缺少转写工具时不自动准备 whisper.cpp",
+    )
+    analyze.set_defaults(auto_transcribe_setup=True)
     analyze.add_argument("--ocr", dest="enable_ocr", action="store_true", help="对关键帧运行 tesseract OCR")
     analyze.add_argument("--no-ocr", dest="enable_ocr", action="store_false", help="关闭关键帧 OCR")
     analyze.set_defaults(enable_ocr=False)
@@ -89,7 +106,9 @@ def main(argv: list[str] | None = None) -> int:
                 model_path=args.whisper_model,
                 prompt=args.whisper_prompt,
             ),
+            whisper_cpp_setup=WhisperCppAutoSetup(tools_dir=args.tools_dir),
             ocr_engine=TesseractOcr(enabled=args.enable_ocr),
+            auto_transcribe_setup=args.auto_transcribe_setup,
         ).analyze(
             args.source,
             output_dir=output_dir,

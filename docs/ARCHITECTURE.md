@@ -9,7 +9,7 @@ source
   -> classify_source
   -> YtDlpClient 或本地文件
   -> FfmpegClient.probe
-  -> 字幕加载或 WhisperTranscriber 或 WhisperCppTranscriber
+  -> 字幕加载或 WhisperTranscriber 或 WhisperCppAutoSetup/WhisperCppTranscriber
   -> FfmpegClient.extract_keyframes，可限制数量
   -> 可选 TesseractOcr
   -> AnalysisReport
@@ -22,7 +22,7 @@ source
   命令行入口。负责参数解析、调用分析器、写出报告、生成摘要输入包和打印进程检查结果。
 
 - `watchvideo/analyzer.py`
-  编排层。负责决定先下载字幕、再下载视频、再加载字幕或转写、最后抽关键帧。这里不直接写下载、转写或抽帧细节。
+  编排层。负责决定先下载字幕、再下载视频、再加载字幕或转写、必要时准备 `whisper.cpp`、最后抽关键帧。这里不直接写下载、转写或抽帧细节。
 
 - `watchvideo/downloader.py`
   `yt-dlp` 适配层。负责平台字幕下载和网络视频下载。
@@ -37,7 +37,7 @@ source
   字幕解析。支持 `.srt` 和 `.vtt`，会清理标签、合并多行文本、去掉相邻重复句。
 
 - `watchvideo/transcription.py`
-  自动转写入口。支持系统 PATH 上名为 `whisper` 的 CLI，也支持显式传入本地 `whisper.cpp` 的 `whisper-cli` 和模型路径。
+  自动转写入口。支持系统 PATH 上名为 `whisper` 的 CLI，支持显式传入本地 `whisper.cpp`，也支持在 `.tools/whisper.cpp` 下自动 clone、下载 `base` 模型并构建 `whisper-cli`。
 
 - `watchvideo/ocr.py`
   OCR 入口。当前只在用户传 `--ocr` 时调用 `tesseract`，并只处理已经抽出的关键帧。
@@ -60,10 +60,10 @@ source
 
 当前大模型相关能力分两类：
 
-- 语音识别：如果安装 `whisper` CLI，或提供 `whisper.cpp` 参数，脚本会本地生成字幕。
+- 语音识别：如果安装 `whisper` CLI，或自动/显式准备 `whisper.cpp`，脚本会本地生成字幕。
 - 内容理解：目前由 Codex 在对话中读取报告、摘要输入包和关键帧后完成，不在代码里自动执行。
 
-本地 `whisper.cpp` 流程已经纳入 `python3 -m watchvideo analyze` 的自动路径，但需要用户显式提供二进制和模型路径。
+本地 `whisper.cpp` 流程已经纳入 `python3 -m watchvideo analyze` 的默认路径：没有字幕且系统 `whisper` 无结果时，CLI 会尝试准备 `.tools/whisper.cpp`。显式传入二进制和模型路径时，CLI 使用用户指定路径，不覆盖配置错误。
 
 如果 Codex 已经得出“视频讲了什么”的最终总结，调用方应把总结写入 `AnalysisReport.summary_text`，让 `report.md` 出现 `视频内容总结` 区块。总结不能只存在于对话上下文里。
 

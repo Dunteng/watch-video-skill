@@ -35,6 +35,21 @@ class CliTests(unittest.TestCase):
         self.assertEqual(args.whisper_prompt, "Agent, Codex")
         self.assertTrue(args.enable_ocr)
         self.assertTrue(args.check_processes)
+        self.assertTrue(args.auto_transcribe_setup)
+
+    def test_analyze_accepts_auto_transcribe_setup_options(self):
+        args = build_parser().parse_args(
+            [
+                "analyze",
+                "video.mp4",
+                "--no-auto-transcribe-setup",
+                "--tools-dir",
+                ".custom-tools",
+            ]
+        )
+
+        self.assertFalse(args.auto_transcribe_setup)
+        self.assertEqual(args.tools_dir, ".custom-tools")
 
     def test_max_keyframes_must_be_positive(self):
         with redirect_stderr(io.StringIO()):
@@ -59,6 +74,9 @@ class CliTests(unittest.TestCase):
             "yt-dlp": ToolStatus(name="yt-dlp", path="/usr/bin/yt-dlp", version="yt-dlp 1"),
             "ffmpeg": ToolStatus(name="ffmpeg", path=None),
             "ffprobe": ToolStatus(name="ffprobe", path="/usr/bin/ffprobe"),
+            "git": ToolStatus(name="git", path="/usr/bin/git"),
+            "bash": ToolStatus(name="bash", path="/bin/bash"),
+            "cmake": ToolStatus(name="cmake", path=None),
             "whisper": ToolStatus(name="whisper", path=None),
             "tesseract": ToolStatus(name="tesseract", path="/usr/bin/tesseract"),
         }
@@ -72,6 +90,8 @@ class CliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("REQUIRED_OK\tpython3\tPython 3", lines)
         self.assertIn("REQUIRED_MISSING\tffmpeg\t", lines)
+        self.assertIn("OPTIONAL_OK\tgit\t/usr/bin/git", lines)
+        self.assertIn("OPTIONAL_MISSING\tcmake\t", lines)
         self.assertIn("OPTIONAL_MISSING\twhisper\t", lines)
         self.assertIn("OPTIONAL_OK\ttesseract\t/usr/bin/tesseract", lines)
 

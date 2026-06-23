@@ -8,17 +8,20 @@ If `doctor` reports `REQUIRED_MISSING`, stop and report the specific missing com
 
 If optional tools are missing:
 
-- `OPTIONAL_MISSING whisper`: use platform subtitles or configured `whisper.cpp`;
+- `OPTIONAL_MISSING whisper`: continue; `analyze` can still use platform subtitles or auto-prepare `whisper.cpp`;
+- `OPTIONAL_MISSING git` or `OPTIONAL_MISSING bash`: continue for videos with subtitles, but automatic `whisper.cpp` setup will fail when transcription is needed;
+- `OPTIONAL_MISSING cmake`: continue; `analyze` will try to install a local `cmake` under `.tools/.venv`;
 - `OPTIONAL_MISSING tesseract`: continue without OCR and mention that visual text was not OCR'd;
-- missing configured `whisper.cpp` binary or model: ask whether the user wants local transcription setup or proceed with available subtitles/keyframes.
+- missing explicitly configured `whisper.cpp` binary or model: fix the paths, or remove `--whisper-cpp-bin`/`--whisper-model` so automatic setup can run.
 
 ## No Subtitle Or Transcript
 
 If `report.md` has `字幕文件数: 0` or says no transcript is available:
 
-1. Try configured `whisper.cpp` if binary and model paths exist.
-2. If local transcription is unavailable, summarize only visual/keyframe evidence and clearly state the limitation.
-3. Do not claim exact spoken content without transcript evidence.
+1. Rerun `analyze` with automatic transcription enabled, optionally adding `--whisper-prompt` and `--language`.
+2. If the user disabled setup or setup failed, fix missing `git`/`bash`, inspect local `cmake` setup under `.tools/.venv`, or provide explicit `--whisper-cpp-bin` and `--whisper-model` paths.
+3. If local transcription is still unavailable, summarize only visual/keyframe evidence and clearly state the limitation.
+4. Do not claim exact spoken content without transcript evidence.
 
 ## Noisy Transcription
 

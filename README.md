@@ -12,6 +12,7 @@
 - 下载平台字幕或自动字幕；
 - 探测视频时长、分辨率等元信息；
 - 解析 `.srt` / `.vtt` 字幕；
+- 没有字幕时调用系统 `whisper`，必要时自动准备 `.tools/whisper.cpp` 转写；
 - 抽取关键帧；
 - 生成 `report.json` 和 `report.md`；
 - 生成面向 Agent 阅读的 `summary-input.md`；
@@ -19,7 +20,6 @@
 
 脚本可以按需处理：
 
-- 调用系统 `whisper` CLI 或本地 `whisper.cpp` 转写音频；
 - 使用 `tesseract` 对关键帧做 OCR；
 - 限制关键帧数量，避免长视频产物过大。
 
@@ -68,11 +68,14 @@ brew install yt-dlp ffmpeg
 可选工具：
 
 ```bash
+git
+bash
+cmake
 whisper
 tesseract
-whisper.cpp 的 whisper-cli
-whisper.cpp 模型文件
 ```
+
+`git` 和 `bash` 用于在没有可用字幕时自动准备本 skill 私有的 `.tools/whisper.cpp`。如果系统没有 `cmake`，CLI 会尝试在 `.tools/.venv` 安装本地 `cmake` wheel；这些准备步骤失败时，有字幕的视频仍可分析，无字幕视频会在报告里记录转写限制。
 
 检查环境：
 
@@ -86,7 +89,7 @@ python3 -m watchvideo doctor
 - `REQUIRED_OK`：必需工具可用；
 - `REQUIRED_MISSING`：必须先安装，否则分析流程会失败；
 - `OPTIONAL_OK`：可选能力可用；
-- `OPTIONAL_MISSING`：可选能力不可用，但主流程可以继续。
+- `OPTIONAL_MISSING`：可选能力不可用，但主流程可以继续；无字幕视频可能无法完成本地转写或 OCR。
 
 ## 用 Codex 分析视频
 
@@ -168,7 +171,33 @@ python3 -m watchvideo processes
 
 ## 本地转写和 OCR
 
-使用 `whisper.cpp`：
+默认行为：
+
+- 优先使用平台字幕或旁路字幕；
+- 没有字幕时先尝试系统 PATH 上的 `whisper` CLI；
+- `whisper` 不可用或没有结果时，默认在 skill 仓库的 `.tools/whisper.cpp` 下 clone、下载 `base` 模型并构建 `whisper-cli`；
+- 系统没有 `cmake` 时，会尝试在 `.tools/.venv` 内准备本地 `cmake`，不修改系统环境；
+- `.tools/` 和模型文件已被 `.gitignore` 忽略，不应提交。
+
+禁用自动准备：
+
+```bash
+python3 -m watchvideo analyze "https://example.com/video" \
+  --no-auto-transcribe-setup \
+  -o "$TASK_WORKDIR/analysis/demo"
+```
+
+把工具缓存放到自定义目录：
+
+```bash
+python3 -m watchvideo analyze "https://example.com/video" \
+  --tools-dir "$TASK_WORKDIR/.tools" \
+  --whisper-prompt "Agent, Codex, AI 编程" \
+  --language zh \
+  -o "$TASK_WORKDIR/analysis/demo"
+```
+
+使用已经预装好的 `whisper.cpp`：
 
 ```bash
 python3 -m watchvideo analyze "https://example.com/video" \
@@ -201,6 +230,8 @@ python3 -m watchvideo doctor
 ```
 
 `doctor` 中不能出现 `REQUIRED_MISSING`。`OPTIONAL_MISSING` 可以接受，但会影响本地转写或 OCR 能力。
+
+如果 `OPTIONAL_MISSING git` 或 `OPTIONAL_MISSING bash` 出现，自动准备 `whisper.cpp` 会失败。`OPTIONAL_MISSING cmake` 会触发 `.tools/.venv` 兜底，只有本地 `cmake` 安装失败时才影响无字幕视频转写。
 
 ## 文档
 

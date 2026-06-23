@@ -35,7 +35,7 @@ python3 -m compileall watchvideo tests
 python3 -m watchvideo doctor
 ```
 
-`doctor` 输出中不应出现 `REQUIRED_MISSING`。`OPTIONAL_MISSING` 可以接受，但发布说明应如实描述缺少的能力。
+`doctor` 输出中不应出现 `REQUIRED_MISSING`。`OPTIONAL_MISSING` 可以接受，但发布说明应如实描述缺少的能力；缺少 `git` 或 `bash` 会影响自动准备 `whisper.cpp`，缺少 `cmake` 会触发 `.tools/.venv` 兜底。
 
 运行 skill 行为验证：
 

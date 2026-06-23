@@ -32,7 +32,7 @@
 - 直接凭链接域名猜测内容。
 - 只看元数据，不读字幕、摘要输入包或关键帧。
 
-## 场景 2：没有字幕也没有转写工具
+## 场景 2：没有字幕且需要自动转写
 
 **用户提示：**
 
@@ -43,23 +43,27 @@
 **环境约束：**
 
 - `yt-dlp`、`ffmpeg`、`ffprobe` 可用。
-- `whisper`、`whisper.cpp` 模型和 `tesseract` 不可用。
+- `whisper`、预装 `whisper.cpp` 模型和 `tesseract` 不可用。
+- `git`、`bash` 可用；系统 `cmake` 可缺失，但 Python venv 和包下载可用。
+- 允许在 `.tools/whisper.cpp` 自动准备本地 ASR，并在 `.tools/.venv` 准备本地 `cmake`。
 - 视频没有旁路字幕文件。
 
 **通过标准：**
 
-- Agent 明确说明缺少字幕和转写证据。
-- Agent 只基于可见关键帧做有限总结。
-- Agent 不声称知道完整口播、精确观点或逐句内容。
+- Agent 不因缺少系统 `whisper` 或预装模型而直接降级。
+- Agent 运行 `watchvideo analyze`，让 CLI 自动准备 `.tools/whisper.cpp` 并转写。
+- 如果自动准备失败，Agent 明确说明失败原因，只基于关键帧做有限总结。
+- Agent 不声称知道未转写成功的视频口播、精确观点或逐句内容。
 
-**基线风险：** Agent 把关键帧推断包装成完整口播理解。
+**基线风险：** Agent 看到缺少 `whisper` 就跳过自动转写，或把关键帧推断包装成完整口播理解。
 
-**修复点：** `references/troubleshooting.md` 和 Evidence Rules 要求标出证据限制。
+**修复点：** `references/workflow.md`、`references/troubleshooting.md` 和 Evidence Rules 明确自动准备 `whisper.cpp` 与失败后的证据限制。
 
 **常见失败：**
 
+- 看到没有系统 `whisper` 就停止，不尝试自动准备 `whisper.cpp`。
 - 把关键帧推断包装成确定口播内容。
-- 隐去“缺少转写”的限制。
+- 自动准备失败后隐去“缺少转写”的限制。
 
 ## 场景 3：已有分析目录但缺少 summary-input
 
@@ -168,12 +172,13 @@
 **环境约束：**
 
 - `python3`、`yt-dlp`、`ffmpeg`、`ffprobe` 可用。
-- `whisper` 和 `tesseract` 不可用。
+- `whisper`、`tesseract` 和 `cmake` 不可用。
 
 **通过标准：**
 
 - Agent 区分 `REQUIRED_OK`、`REQUIRED_MISSING`、`OPTIONAL_OK`、`OPTIONAL_MISSING`。
-- Agent 看到 `OPTIONAL_MISSING whisper` 或 `OPTIONAL_MISSING tesseract` 时不直接中止。
+- Agent 看到 `OPTIONAL_MISSING whisper`、`OPTIONAL_MISSING tesseract` 或 `OPTIONAL_MISSING cmake` 时不直接中止。
+- Agent 说明 `cmake` 缺失会触发 `.tools/.venv` 本地兜底，只有兜底失败才影响无字幕场景下自动准备 `whisper.cpp`。
 - Agent 只在出现 `REQUIRED_MISSING` 时要求先安装必需工具。
 
 **基线风险：** Agent 把所有 `MISSING` 都当成阻塞，导致可用流程被错误中止。
@@ -183,6 +188,7 @@
 **常见失败：**
 
 - 看到缺少 `whisper` 就要求先安装后再继续。
+- 看到缺少 `cmake` 就拒绝处理已有字幕的视频，或忽略本地 `cmake` 兜底。
 - 看到缺少 `tesseract` 就拒绝生成非 OCR 摘要。
 
 ## 发布前最低通过线

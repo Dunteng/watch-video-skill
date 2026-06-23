@@ -1,15 +1,15 @@
 ---
 name: watch-video
-description: Use when the user asks to watch, analyze, summarize, transcribe, OCR, extract keyframes from, or turn a local video file or video URL into a structured report, Chinese summary, interview-answer note, learning note, or Obsidian note. Triggers include Douyin, TikTok, YouTube, yt-dlp links, mp4/mov files, subtitles, transcript, keyframes, video report, and "this video says what". Do not use for video editing, video generation, playback UI, or maintaining the watchvideo codebase itself.
+description: Use when the user asks to watch, analyze, summarize, transcribe, OCR, extract keyframes from, or make notes from a local video file or video URL. Triggers include Douyin, TikTok, YouTube, yt-dlp, mp4/mov, subtitles, transcript, keyframes, video report, and "this video says what". Do not use for video editing, generation, playback UI, or maintaining watchvideo code.
 ---
 
 # Watch Video
 
 ## Overview
 
-Use the `watchvideo` CLI to turn a video file or URL into Agent-readable evidence, then synthesize a grounded summary from report, transcript, and keyframes.
+Use `watchvideo` to turn a video file or URL into Agent-readable evidence, then synthesize a grounded summary from the report, transcript, and keyframes.
 
-The CLI prepares evidence; the Agent reads it, writes the final understanding, and persists it back to the report when requested or when a report file exists.
+The CLI prepares evidence, including local ASR when needed; the Agent reads it, writes final understanding, and persists it back to `report.md` when requested or when the report exists.
 
 ## Routing Boundaries
 
@@ -29,7 +29,7 @@ Do not use this skill for:
 ## Workflow
 
 1. Locate the skill repository directory, meaning the directory that contains this `SKILL.md` and `watchvideo/cli.py`. Run CLI commands from that directory with `python3 -m watchvideo ...`.
-2. Keep generated outputs in the user's current workspace, unless the user confirms another path. For command details, read `references/workflow.md`.
+2. Keep analysis outputs in the user's current workspace, unless the user confirms another path. The CLI may cache `whisper.cpp` under `.tools/`. For command details, read `references/workflow.md`.
 3. Run or inspect analysis, then read generated artifacts before summarizing. For artifact priority and output rules, read `references/artifacts.md`.
 4. If tools, subtitles, OCR, downloads, or long-running processes fail, read `references/troubleshooting.md`.
 5. When a `report.md` exists and you produce the final video understanding, write the summary into its `视频内容总结` section. You may use `scripts/update_report_summary.py`.
@@ -37,7 +37,7 @@ Do not use this skill for:
 ## Evidence Rules
 
 - Do not summarize from the video URL alone.
-- Prefer platform subtitles when available; otherwise use local transcription if configured.
+- Prefer platform subtitles; otherwise let the CLI use system `whisper` or auto-prepare local `whisper.cpp` unless disabled.
 - Use keyframes to verify slides, code, diagrams, on-screen text, and visual context.
 - Mark uncertain transcription, OCR, names, dates, and technical terms as needing confirmation.
 - Keep final summaries concise, structured, and grounded in visible/transcribed evidence.

@@ -10,7 +10,7 @@
 python3 -m watchvideo doctor
 ```
 
-`REQUIRED_MISSING` 表示需要先安装后再分析；`OPTIONAL_MISSING` 只表示对应能力不可用，例如没有本地转写或 OCR。
+`REQUIRED_MISSING` 表示需要先安装后再分析；`OPTIONAL_MISSING` 只表示对应能力不可用或需要本地兜底，例如没有系统 `whisper`、没有 OCR，或需要在 `.tools/.venv` 准备 `cmake`。
 
 分析视频链接：
 
@@ -30,11 +30,19 @@ python3 -m watchvideo analyze ./video.mp4 -o analysis/local
 sed -n '1,120p' analysis/demo/report.md
 ```
 
-如果 `字幕文件数` 为 `0`，且报告里出现“没有可用字幕”，说明需要走音频转写。
+如果 `字幕文件数` 为 `0`，CLI 会先尝试系统 `whisper`，再按默认配置准备 `.tools/whisper.cpp` 转写。只有转写准备失败或被禁用时，报告才会出现“没有可用字幕”的限制。
 
-## 自动使用 whisper.cpp 转字幕
+## 默认自动准备 whisper.cpp 转字幕
 
-如果系统没有 `whisper` CLI，可以在当前仓库内构建 `whisper.cpp`，再把二进制和模型路径传给 `analyze`。
+如果系统没有 `whisper` CLI，`analyze` 会在需要转写时自动把 `whisper.cpp` 准备到 skill 仓库的 `.tools/whisper.cpp`，并下载 `base` 模型。它不会安装系统级依赖。
+
+自动准备依赖：
+
+```text
+git
+bash
+cmake（系统缺失时会尝试安装到 .tools/.venv）
+```
 
 这些目录已在 `.gitignore` 中忽略：
 
@@ -44,27 +52,48 @@ sed -n '1,120p' analysis/demo/report.md
 analysis/
 ```
 
-准备构建工具：
+日常用法只需要正常分析：
+
+```bash
+python3 -m watchvideo analyze "https://example.com/video" \
+  --whisper-prompt "视频里的领域术语、产品名、人名或技术词" \
+  --language zh \
+  --max-keyframes 80 \
+  -o analysis/demo
+```
+
+禁用自动准备：
+
+```bash
+python3 -m watchvideo analyze "https://example.com/video" \
+  --no-auto-transcribe-setup \
+  -o analysis/demo
+```
+
+把工具缓存放到指定目录：
+
+```bash
+python3 -m watchvideo analyze "https://example.com/video" \
+  --tools-dir "$(pwd)/.tools" \
+  --whisper-prompt "视频里的领域术语、产品名、人名或技术词" \
+  --language zh \
+  -o analysis/demo
+```
+
+如果需要预装或手工排查，可以自己构建 `whisper.cpp`，再显式传入二进制和模型路径：
 
 ```bash
 PROJECT_ROOT="$(pwd)"
-python3 -m venv .venv
-.venv/bin/python -m pip install --upgrade pip cmake
-```
-
-下载并构建 `whisper.cpp`：
-
-```bash
 mkdir -p .tools
 git clone --depth 1 https://github.com/ggerganov/whisper.cpp .tools/whisper.cpp
 cd .tools/whisper.cpp
 bash models/download-ggml-model.sh base
-PATH="$PROJECT_ROOT/.venv/bin:$PATH" cmake -B build -DCMAKE_BUILD_TYPE=Release
-PATH="$PROJECT_ROOT/.venv/bin:$PATH" cmake --build build --config Release -j 6
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release -j 6
 cd "$PROJECT_ROOT"
 ```
 
-自动分析并转写：
+显式使用预装路径：
 
 ```bash
 python3 -m watchvideo analyze "https://example.com/video" \
@@ -72,11 +101,10 @@ python3 -m watchvideo analyze "https://example.com/video" \
   --whisper-model .tools/whisper.cpp/models/ggml-base.bin \
   --whisper-prompt "视频里的领域术语、产品名、人名或技术词" \
   --language zh \
-  --max-keyframes 80 \
   -o analysis/demo
 ```
 
-如果需要手工排查 `whisper.cpp`，`analyze` 会在 `transcript/audio.wav` 留下抽出的音频；也可以单独运行：
+`analyze` 会在 `transcript/audio.wav` 留下抽出的音频；也可以单独运行：
 
 ```bash
 .tools/whisper.cpp/build/bin/whisper-cli \

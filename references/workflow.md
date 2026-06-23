@@ -29,7 +29,7 @@ cd <watch-video-skill-repo>
 python3 -m watchvideo analyze "<source>" -o "$TASK_WORKDIR/analysis/<source-or-topic-slug>"
 ```
 
-Keep generated media, transcripts, keyframes, and reports inside the output directory. Do not write analysis outputs into the skill installation directory unless it is also the user's current project workspace. Do not add `analysis/`, `.tools/`, `.venv/`, or model files to git.
+Keep generated media, transcripts, keyframes, and reports inside the output directory. Do not write analysis outputs into the skill installation directory unless it is also the user's current project workspace. The CLI may maintain its local transcription cache under `.tools/whisper.cpp`; never add `analysis/`, `.tools/`, `.venv/`, or model files to git.
 
 ## 3. Check Tools
 
@@ -41,9 +41,9 @@ python3 -m watchvideo doctor
 
 Required tools: `python3`, `yt-dlp`, `ffmpeg`, `ffprobe`.
 
-Optional tools: `whisper`, `tesseract`, `whisper.cpp` `whisper-cli` and model.
+Optional tools: `git` and `bash` for automatic `whisper.cpp` setup; `cmake` for system builds with `.tools/.venv` fallback; `whisper` for system ASR; `tesseract` for OCR.
 
-`doctor` prints `REQUIRED_OK` or `REQUIRED_MISSING` for required tools, and `OPTIONAL_OK` or `OPTIONAL_MISSING` for optional tools. Stop on `REQUIRED_MISSING`. Continue with evidence limits on `OPTIONAL_MISSING`.
+`doctor` prints `REQUIRED_OK` or `REQUIRED_MISSING` for required tools, and `OPTIONAL_OK` or `OPTIONAL_MISSING` for optional tools. Stop on `REQUIRED_MISSING`. Continue on `OPTIONAL_MISSING`; missing `git` or `bash` prevents automatic `whisper.cpp` setup, while missing `cmake` triggers a local `.tools/.venv` fallback that may still fail if Python venv or package download is unavailable.
 
 ## 4. Analyze Video
 
@@ -77,21 +77,19 @@ Enable OCR only when visual text, slides, code, tables, or screenshots matter:
 python3 -m watchvideo analyze "$TASK_WORKDIR/video.mp4" --ocr -o "$TASK_WORKDIR/analysis/local-video"
 ```
 
-## 5. Use Local whisper.cpp When Needed
+## 5. Use Local Transcription When Needed
 
-If `report.md` says there are no subtitles or no transcript, rerun with local transcription when configured:
+If no subtitle is available, `analyze` first tries system `whisper`, then automatically prepares `.tools/whisper.cpp` and transcribes with the `base` model. Use a domain-specific prompt when the video has known jargon:
 
 ```bash
 python3 -m watchvideo analyze "https://example.com/video" \
-  --whisper-cpp-bin .tools/whisper.cpp/build/bin/whisper-cli \
-  --whisper-model .tools/whisper.cpp/models/ggml-base.bin \
   --whisper-prompt "Agent, Codex, AI 编程, skill, GitHub" \
   --language zh \
   --max-keyframes 80 \
   -o "$TASK_WORKDIR/analysis/demo"
 ```
 
-Use a domain-specific prompt when the video has known jargon. Do not invent jargon not supported by the content.
+Use `--no-auto-transcribe-setup` only when the user wants to avoid tool downloads/builds. Use `--tools-dir <path>` to place the `whisper.cpp` cache somewhere explicit. If the user provides `--whisper-cpp-bin` or `--whisper-model`, treat those paths as intentional and fix missing paths instead of silently replacing them.
 
 ## 6. Generate Summary Input
 

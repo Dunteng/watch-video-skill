@@ -60,6 +60,18 @@ class FakeOcr:
         return []
 
 
+class FakeWhisperCppSetup:
+    def __init__(self):
+        self.called = False
+        self.prompt = None
+        self.transcriber = FakeTranscriber()
+
+    def ensure_transcriber(self, prompt=None):
+        self.called = True
+        self.prompt = prompt
+        return self.transcriber
+
+
 class AnalyzerTests(unittest.TestCase):
     def test_default_analyzer_ocr_engine_is_enabled_when_ocr_is_requested(self):
         analyzer = VideoAnalyzer()
@@ -127,6 +139,7 @@ class AnalyzerTests(unittest.TestCase):
             report = VideoAnalyzer(
                 media_client=FakeMediaClient(),
                 transcriber=primary,
+                auto_transcribe_setup=False,
             ).analyze(
                 str(video),
                 output_dir=Path(tmp) / "out",
@@ -135,6 +148,27 @@ class AnalyzerTests(unittest.TestCase):
         self.assertTrue(
             any("whisper.cpp" in warning and "未配置" in warning for warning in report.warnings)
         )
+
+    def test_analysis_auto_sets_up_whisper_cpp_when_no_transcriber_is_configured(self):
+        primary = FakeTranscriber()
+        primary.cues = []
+        setup = FakeWhisperCppSetup()
+
+        with TemporaryDirectory() as tmp:
+            video = Path(tmp) / "video.mp4"
+            video.write_bytes(b"fake")
+            report = VideoAnalyzer(
+                media_client=FakeMediaClient(),
+                transcriber=primary,
+                whisper_cpp_setup=setup,
+            ).analyze(
+                str(video),
+                output_dir=Path(tmp) / "out",
+            )
+
+        self.assertTrue(setup.called)
+        self.assertEqual(report.transcript_text, "转写字幕")
+        self.assertFalse(any("未配置 whisper.cpp" in warning for warning in report.warnings))
 
 
 if __name__ == "__main__":
