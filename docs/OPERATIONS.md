@@ -18,7 +18,7 @@ python3 -m watchvideo doctor
 python3 -m watchvideo analyze "https://example.com/video" -o analysis/demo
 ```
 
-远程视频取证顺序是固定的：先普通 `yt-dlp`，遇到 cookies/login/bot 拦截就用 `--cookies-from-browser chrome` 直接读取已有 Chrome cookies 重试，再失败后结构化解析公开分享页/SSR 里的 `_ROUTER_DATA` / `play_addr`，最后才要求用户提供本地视频或可访问直链。**不要打开 Chrome 页面，也不要用标题、简介、搜索结果或同主题资料替代视频证据。**
+远程视频取证顺序是固定的：先普通 `yt-dlp`，遇到 cookies/login/bot 拦截就用 `--cookies-from-browser chrome` 直接读取已有 Chrome cookies 重试，再失败后结构化解析公开分享页/SSR 里的 `_ROUTER_DATA` / `RENDER_DATA` / `play_addr`，最后才要求用户提供本地视频或可访问直链。**不要打开 Chrome 页面，也不要用标题、简介、搜索结果或同主题资料替代视频证据。**
 
 分析本地文件：
 
@@ -32,7 +32,7 @@ python3 -m watchvideo analyze ./video.mp4 -o analysis/local
 sed -n '1,120p' analysis/demo/report.md
 ```
 
-网络视频的 `report.md` 会包含 `下载诊断`，`report.json` 和 `summary-input.md` 会包含同一组下载尝试。下载失败时先读这些诊断，再说明卡在普通 `yt-dlp`、浏览器 cookies 重试、SSR 解析还是直链下载。
+网络视频的 `report.md` 会包含 `下载诊断`，`report.json` 和 `summary-input.md` 会包含同一组下载尝试。下载失败且没有正常报告时，先读 `failure.md` / `failure.json`，再说明卡在普通 `yt-dlp`、浏览器 cookies 重试、SSR 解析还是直链下载。
 
 如果 `字幕文件数` 为 `0`，CLI 会先尝试系统 `whisper`，再按默认配置准备 `.tools/whisper.cpp` 转写。只有转写准备失败或被禁用时，报告才会出现“没有可用字幕”的限制。
 

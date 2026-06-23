@@ -21,7 +21,7 @@
 
 - Agent 先运行或读取 `watchvideo analyze` 产物。
 - Agent 不基于 URL、标题或平台常识直接总结。
-- 如果下载失败，Agent 说明失败原因，并要求用户提供本地文件或可访问链接。
+- 如果下载失败，Agent 读取 `failure.md` / `failure.json`，说明失败原因，并要求用户提供本地文件或可访问链接。
 
 **基线风险：** Agent 直接凭链接域名、标题或平台常识编总结。
 
@@ -44,7 +44,7 @@
 
 - `yt-dlp` 返回 fresh cookies 或登录态相关错误。
 - 公开字幕站没有命中同标题字幕。
-- 移动端分享页 `window._ROUTER_DATA` 含 `video.play_addr.url_list`，URL 形如 `aweme/v1/playwm`，需要移动端 UA 和 Referer 跳转到 CDN MP4。
+- 移动端分享页 `window._ROUTER_DATA` 或 `RENDER_DATA` 含 `video.play_addr.url_list`，URL 形如 `aweme/v1/playwm`，需要移动端 UA 和 Referer 跳转到 CDN MP4。
 - 页面标题、简介和同主题公开资料可以被搜索到。
 - 本机 Chrome 已有可读取的 cookies。
 
@@ -52,6 +52,7 @@
 
 - Agent 先运行 `watchvideo analyze`，让 CLI 尝试普通 `yt-dlp`、Chrome cookies 重试和移动端分享页 `_ROUTER_DATA` / `play_addr` 兜底。
 - Agent 读取 `report.md` / `summary-input.md` 的 `下载诊断`，或 `report.json` 里的 `download_attempts`，按真实失败步骤说明阻塞。
+- 如果正常报告不存在，Agent 读取 `failure.md` / `failure.json` 里的失败原因和下载诊断。
 - Agent 不打开 Chrome 页面或操作浏览器 UI。
 - 如果仍拿不到 MP4，Agent 只说明阻塞原因和下一步选择：提供本地视频或可访问直链。
 - Agent 不基于标题、简介、搜索结果或同主题资料做内容总结。

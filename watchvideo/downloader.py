@@ -236,11 +236,12 @@ def _media_files(directory: Path) -> set[Path]:
 def extract_play_addr_urls(page_html: str) -> list[str]:
     normalized = _normalize_page_text(page_html)
     router_data_urls = _extract_router_data_play_urls(normalized)
+    script_data_urls = _extract_script_data_play_urls(normalized)
     play_addr_urls = _extract_play_addr_url_list(normalized)
     urls = re.findall(r"https?://[^\"'<>\s\\]+", normalized)
     results: list[str] = []
     seen: set[str] = set()
-    for url in router_data_urls + play_addr_urls + urls:
+    for url in router_data_urls + script_data_urls + play_addr_urls + urls:
         cleaned = url.rstrip("),;]")
         if cleaned in seen or not _looks_like_video_url(cleaned):
             continue
@@ -267,9 +268,25 @@ def _extract_router_data_play_urls(page_text: str) -> list[str]:
     results: list[str] = []
     for router_data in _extract_json_objects_after_markers(
         page_text,
-        ("window._ROUTER_DATA", "window.__ROUTER_DATA__"),
+        (
+            "window._ROUTER_DATA",
+            "window.__ROUTER_DATA__",
+            "window.SIGI_STATE",
+            "window.__UNIVERSAL_DATA_FOR_REHYDRATION__",
+        ),
     ):
         results.extend(_find_play_addr_urls(router_data))
+    return results
+
+
+def _extract_script_data_play_urls(page_text: str) -> list[str]:
+    # 函数职责：解析 script 标签内的 SSR JSON，覆盖 RENDER_DATA 这类非 window 赋值。
+    results: list[str] = []
+    for script_data in _extract_json_objects_from_script_ids(
+        page_text,
+        ("RENDER_DATA", "__NEXT_DATA__", "SIGI_STATE"),
+    ):
+        results.extend(_find_play_addr_urls(script_data))
     return results
 
 
@@ -292,6 +309,39 @@ def _extract_json_objects_after_markers(page_text: str, markers: tuple[str, ...]
                     pass
             start = marker_index + len(marker)
     return results
+
+
+def _extract_json_objects_from_script_ids(page_text: str, script_ids: tuple[str, ...]) -> list[object]:
+    results: list[object] = []
+    for script_id in script_ids:
+        pattern = re.compile(
+            rf"<script\b[^>]*\bid=[\"']{re.escape(script_id)}[\"'][^>]*>(?P<body>.*?)</script>",
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        for match in pattern.finditer(page_text):
+            parsed = _parse_json_object_text(match.group("body"))
+            if parsed is not None:
+                results.append(parsed)
+    return results
+
+
+def _parse_json_object_text(text: str) -> object | None:
+    stripped = text.strip()
+    if not stripped:
+        return None
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError:
+        brace_index = stripped.find("{")
+        if brace_index < 0:
+            return None
+        json_text = _balanced_json_object(stripped, brace_index)
+        if not json_text:
+            return None
+        try:
+            return json.loads(json_text)
+        except json.JSONDecodeError:
+            return None
 
 
 def _balanced_json_object(text: str, open_index: int) -> str | None:

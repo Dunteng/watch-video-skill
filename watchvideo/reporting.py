@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .models import AnalysisReport
+from .models import AnalysisReport, DownloadAttempt
 
 
 def write_json_report(report: AnalysisReport, path: Path) -> None:
@@ -17,6 +17,28 @@ def write_json_report(report: AnalysisReport, path: Path) -> None:
 def write_markdown_report(report: AnalysisReport, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(render_markdown_report(report), encoding="utf-8")
+
+
+def write_failure_report(
+    source_value: str,
+    output_dir: Path,
+    error: Exception,
+    download_attempts: list[DownloadAttempt],
+) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    data = {
+        "source": source_value,
+        "error": str(error),
+        "download_attempts": _download_attempts_to_dict(download_attempts),
+    }
+    (output_dir / "failure.json").write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    (output_dir / "failure.md").write_text(
+        render_failure_report(source_value, error, download_attempts),
+        encoding="utf-8",
+    )
 
 
 def render_markdown_report(report: AnalysisReport) -> str:
@@ -61,6 +83,44 @@ def render_markdown_report(report: AnalysisReport) -> str:
     lines.extend(["", "## 字幕/转写文本", ""])
     lines.append(report.transcript_text or "未提取到字幕或转写文本。")
     return "\n".join(lines) + "\n"
+
+
+def render_failure_report(
+    source_value: str,
+    error: Exception,
+    download_attempts: list[DownloadAttempt],
+) -> str:
+    lines = [
+        "# 视频分析失败",
+        "",
+        f"- 来源: `{source_value}`",
+        f"- 错误: `{str(error)}`",
+        "",
+        "没有生成可用的 MP4、字幕、转写或关键帧证据。不要基于标题、简介或搜索结果总结视频内容。",
+    ]
+    if download_attempts:
+        lines.extend(["", "## 下载诊断", ""])
+        lines.extend(_render_download_attempt_lines(download_attempts))
+    return "\n".join(lines) + "\n"
+
+
+def _render_download_attempt_lines(download_attempts: list[DownloadAttempt]) -> list[str]:
+    lines: list[str] = []
+    for attempt in download_attempts:
+        detail = f": {attempt.detail}" if attempt.detail else ""
+        lines.append(f"- `{attempt.status}` {attempt.step}{detail}")
+    return lines
+
+
+def _download_attempts_to_dict(download_attempts: list[DownloadAttempt]) -> list[dict[str, str]]:
+    return [
+        {
+            "step": attempt.step,
+            "status": attempt.status,
+            "detail": attempt.detail,
+        }
+        for attempt in download_attempts
+    ]
 
 
 def _format_duration(seconds: float | None) -> str:

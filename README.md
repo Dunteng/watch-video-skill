@@ -112,6 +112,8 @@ Agent 会按 skill 流程运行 CLI、读取证据文件、输出总结，并在
 
 **不要只凭视频 URL、标题、简介或搜索结果总结。** 这个 skill 要求先生成或读取分析产物，再基于 MP4、字幕/转写和关键帧证据下结论。遇到 cookies 拦截时 CLI 会直接用 Chrome cookies 重试；拿不到证据时应说明下载阻塞，并要求用户提供本地视频或可访问直链。
 
+如果分析失败，CLI 会在输出目录写入 `failure.md` 和 `failure.json`。Agent 应读取失败报告里的下载诊断，只说明阻塞原因和下一步需要的证据。
+
 ## 手动运行 CLI
 
 如果不通过 Codex，也可以手动运行。建议先保存用户工作目录，再从 skill 仓库运行 CLI，并把输出写回当前工作区：
@@ -177,6 +179,11 @@ python3 -m watchvideo processes
 - `subtitles/`：平台字幕或自动字幕；
 - `transcript/`：本地转写结果；
 - `keyframes/`：关键帧图片。
+
+如果没有拿到可分析证据，会生成：
+
+- `failure.json`：结构化失败原因和下载尝试；
+- `failure.md`：人类可读失败报告，明确禁止基于标题、简介或搜索结果总结。
 
 **不要提交运行产物。** `.gitignore` 已忽略 `analysis/`、`.tools/`、`.models/`、媒体文件、模型文件、`.env` 和缓存目录。
 

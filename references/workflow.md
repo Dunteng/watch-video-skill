@@ -63,10 +63,11 @@ For remote URLs, evidence acquisition order is mandatory:
 
 1. Run `watchvideo analyze`, which tries plain `yt-dlp`.
 2. On cookies/login/bot errors, the CLI retries `yt-dlp --cookies-from-browser chrome` by default. Do not open Chrome UI.
-3. If `yt-dlp` still fails, the CLI fetches the mobile share page, structurally parses `window._ROUTER_DATA` / `video.play_addr.url_list` before regex fallbacks, then downloads `aweme/v1/playwm` or CDN URLs with mobile UA and Referer.
-4. If all attempts fail, stop and ask for a local video file or an accessible direct video URL.
+3. If `yt-dlp` still fails, the CLI fetches the mobile share page, structurally parses `window._ROUTER_DATA`, `RENDER_DATA`, and `video.play_addr.url_list` before regex fallbacks, then downloads `aweme/v1/playwm` or CDN URLs with mobile UA and Referer.
+4. If all attempts fail, read `failure.md` / `failure.json`, stop, and ask for a local video file or an accessible direct video URL.
 
 `report.md`, `report.json`, and `summary-input.md` include download diagnostics when remote acquisition was attempted. Use them to explain which step failed instead of guessing from the URL or title.
+When analysis fails before a normal report exists, `failure.md` and `failure.json` contain the same blocking context.
 
 Do not replace missing video evidence with the page title, description, search results, public subtitles for a similar title, or same-topic articles. Those sources can explain the blocker or help craft a prompt after evidence exists; they are not video evidence.
 

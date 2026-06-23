@@ -19,13 +19,13 @@ source
 ## 模块边界
 
 - `watchvideo/cli.py`
-  命令行入口。负责参数解析、调用分析器、写出报告、生成摘要输入包和打印进程检查结果。
+  命令行入口。负责参数解析、调用分析器、写出成功报告或失败报告、生成摘要输入包和打印进程检查结果。
 
 - `watchvideo/analyzer.py`
   编排层。负责决定先下载字幕、再下载视频、再加载字幕或转写、必要时准备 `whisper.cpp`、最后抽关键帧。这里不直接写下载、转写或抽帧细节。
 
 - `watchvideo/downloader.py`
-  下载适配层。优先使用 `yt-dlp`；遇到 cookies/login/bot 拦截时用 `--cookies-from-browser chrome` 重试；仍失败时用移动端 UA 抓分享页，先结构化解析 `window._ROUTER_DATA` 里的 `video.play_addr.url_list`，再用正则兜底查找 `play_addr` 和视频 URL，最后带 Referer 下载跳转后的 MP4。这里不打开浏览器 UI，并把每个下载阶段写入 `DownloadAttempt` 诊断。
+  下载适配层。优先使用 `yt-dlp`；遇到 cookies/login/bot 拦截时用 `--cookies-from-browser chrome` 重试；仍失败时用移动端 UA 抓分享页，先结构化解析 `window._ROUTER_DATA`、`RENDER_DATA` 和 `video.play_addr.url_list`，再用正则兜底查找 `play_addr` 和视频 URL，最后带 Referer 下载跳转后的 MP4。这里不打开浏览器 UI，并把每个下载阶段写入 `DownloadAttempt` 诊断。
 
 - `watchvideo/media.py`
   `ffmpeg` / `ffprobe` 适配层。负责读取视频元信息、抽候选帧、保存代表帧。
@@ -49,7 +49,7 @@ source
   进程检查。扫描 `watchvideo`、`yt-dlp`、`ffmpeg`、`whisper-cli` 等相关命令，只报告不清理。
 
 - `watchvideo/reporting.py`
-  报告写出。生成 `report.json` 和 `report.md`。Markdown 报告面向人阅读，不逐张列出关键帧；关键帧明细保留在 JSON。
+  报告写出。成功时生成 `report.json` 和 `report.md`；失败时生成 `failure.json` 和 `failure.md`。Markdown 报告面向人阅读，不逐张列出关键帧；关键帧明细保留在 JSON。
 
 - `watchvideo/models.py`
   数据模型。集中定义 source、media、subtitle、keyframe、download attempt、report 等结构。

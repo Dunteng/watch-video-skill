@@ -7,7 +7,19 @@ import unittest
 from unittest.mock import patch
 
 from watchvideo.cli import build_parser, main
-from watchvideo.models import ToolStatus
+from watchvideo.models import DownloadAttempt, ToolStatus
+
+
+class FailingAnalyzer:
+    def __init__(self, downloader, **kwargs):
+        self.downloader = downloader
+        self.downloader.download_attempts = [
+            DownloadAttempt(step="plain yt-dlp", status="failed", detail="fresh cookies"),
+            DownloadAttempt(step="mobile share page play_addr", status="failed", detail="no play_addr"),
+        ]
+
+    def analyze(self, *args, **kwargs):
+        raise FileNotFoundError("视频下载失败：需要本地视频或可访问直链")
 
 
 class CliTests(unittest.TestCase):
@@ -61,6 +73,40 @@ class CliTests(unittest.TestCase):
         self.assertEqual(default_args.cookies_from_browser, "chrome")
         self.assertIsNone(disabled_args.cookies_from_browser)
         self.assertEqual(firefox_args.cookies_from_browser, "firefox")
+
+    def test_main_analyze_writes_failure_report_when_analysis_fails(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output_dir = root / "analysis"
+            with patch("watchvideo.cli.VideoAnalyzer", FailingAnalyzer):
+                stdout = io.StringIO()
+                stderr = io.StringIO()
+                with redirect_stdout(stdout), redirect_stderr(stderr):
+                    try:
+                        exit_code = main(
+                            [
+                                "analyze",
+                                "https://www.douyin.com/share/video/123",
+                                "-o",
+                                str(output_dir),
+                            ]
+                        )
+                    except FileNotFoundError as exc:
+                        self.fail(f"main should write failure reports and return 1, got {exc}")
+
+            failure_json = output_dir / "failure.json"
+            failure_md = output_dir / "failure.md"
+            self.assertTrue(failure_json.exists())
+            self.assertTrue(failure_md.exists())
+            failure = json.loads(failure_json.read_text(encoding="utf-8"))
+            markdown = failure_md.read_text(encoding="utf-8")
+
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(failure["source"], "https://www.douyin.com/share/video/123")
+        self.assertIn("download_attempts", failure)
+        self.assertIn("plain yt-dlp", markdown)
+        self.assertIn("不要基于标题、简介或搜索结果总结", markdown)
+        self.assertIn("failure.md", stderr.getvalue())
 
     def test_max_keyframes_must_be_positive(self):
         with redirect_stderr(io.StringIO()):

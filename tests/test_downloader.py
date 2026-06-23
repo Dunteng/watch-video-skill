@@ -106,6 +106,27 @@ class DownloaderTests(unittest.TestCase):
             "https://aweme.snssdk.com/aweme/v1/playwm/?video_id=v0300&ratio=720p",
         )
 
+    def test_extract_play_addr_urls_prioritizes_render_data_script(self):
+        html = r'''
+        <script>
+        window.__noise = {
+          "play_addr": {
+            "url_list": ["https:\/\/v3-web.douyinvod.com\/noise.mp4"]
+          }
+        };
+        </script>
+        <script id="RENDER_DATA" type="application/json">
+        %7B%22video%22%3A%7B%22play_addr%22%3A%7B%22url_list%22%3A%5B%22https%3A%5C%2F%5C%2Faweme.snssdk.com%5C%2Faweme%5C%2Fv1%5C%2Fplaywm%5C%2F%3Fvideo_id%3Dencoded%26ratio%3D720p%22%5D%7D%7D%7D
+        </script>
+        '''
+
+        urls = extract_play_addr_urls(html)
+
+        self.assertEqual(
+            urls[0],
+            "https://aweme.snssdk.com/aweme/v1/playwm/?video_id=encoded&ratio=720p",
+        )
+
     def test_fetch_remote_falls_back_to_share_page_play_addr_when_ytdlp_fails(self):
         html = r'{"play_addr":{"url_list":["https:\/\/v3-web.douyinvod.com\/fallback.mp4"]}}'
         page_client = FakeSharePageClient(html=html, video_bytes=b"mp4")

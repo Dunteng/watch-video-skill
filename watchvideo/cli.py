@@ -6,11 +6,11 @@ from pathlib import Path
 import sys
 
 from .analyzer import VideoAnalyzer
-from .commands import check_tool
+from .commands import CommandError, check_tool
 from .downloader import YtDlpClient
 from .ocr import TesseractOcr
 from .processes import render_process_report, scan_processes
-from .reporting import write_json_report, write_markdown_report
+from .reporting import write_failure_report, write_json_report, write_markdown_report
 from .summarizer import render_summary_prompt
 from .transcription import WhisperCppAutoSetup, WhisperCppTranscriber
 
@@ -109,8 +109,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "analyze":
         output_dir = Path(args.output)
-        report = VideoAnalyzer(
-            downloader=YtDlpClient(cookies_from_browser=args.cookies_from_browser),
+        downloader = YtDlpClient(cookies_from_browser=args.cookies_from_browser)
+        analyzer = VideoAnalyzer(
+            downloader=downloader,
             whisper_cpp_transcriber=WhisperCppTranscriber(
                 whisper_cpp_bin=args.whisper_cpp_bin,
                 model_path=args.whisper_model,
@@ -119,16 +120,29 @@ def main(argv: list[str] | None = None) -> int:
             whisper_cpp_setup=WhisperCppAutoSetup(tools_dir=args.tools_dir),
             ocr_engine=TesseractOcr(enabled=args.enable_ocr),
             auto_transcribe_setup=args.auto_transcribe_setup,
-        ).analyze(
-            args.source,
-            output_dir=output_dir,
-            subtitle_languages=args.sub_lang or ["zh.*", "en.*"],
-            max_height=args.max_height,
-            keyframe_interval=args.keyframe_interval,
-            max_keyframes=args.max_keyframes,
-            language=args.language,
-            enable_ocr=args.enable_ocr,
         )
+        try:
+            report = analyzer.analyze(
+                args.source,
+                output_dir=output_dir,
+                subtitle_languages=args.sub_lang or ["zh.*", "en.*"],
+                max_height=args.max_height,
+                keyframe_interval=args.keyframe_interval,
+                max_keyframes=args.max_keyframes,
+                language=args.language,
+                enable_ocr=args.enable_ocr,
+            )
+        except (CommandError, FileNotFoundError, OSError, ValueError) as exc:
+            write_failure_report(
+                source_value=args.source,
+                output_dir=output_dir,
+                error=exc,
+                download_attempts=list(getattr(downloader, "download_attempts", [])),
+            )
+            print(f"分析失败，已写入: {(output_dir / 'failure.md').resolve()}", file=sys.stderr)
+            if args.check_processes:
+                print(render_process_report(scan_processes()), end="", file=sys.stderr)
+            return 1
         write_json_report(report, output_dir / "report.json")
         write_markdown_report(report, output_dir / "report.md")
         print(output_dir.resolve())

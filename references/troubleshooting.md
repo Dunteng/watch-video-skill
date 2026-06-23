@@ -36,8 +36,9 @@ Use `--max-keyframes 80` for normal videos. For short videos, a lower limit such
 For a URL failure:
 
 - preserve the exact URL in the report to the user;
-- read `下载诊断` in `report.md` / `summary-input.md`, or `download_attempts` in `report.json`, before explaining the blocker;
-- mention that `watchvideo` tried plain `yt-dlp`, browser-cookie `yt-dlp`, and structural mobile share-page `window._ROUTER_DATA` / `play_addr.url_list` extraction when applicable;
+- read `failure.md` / `failure.json` if normal reports were not produced;
+- otherwise read `下载诊断` in `report.md` / `summary-input.md`, or `download_attempts` in `report.json`, before explaining the blocker;
+- mention that `watchvideo` tried plain `yt-dlp`, browser-cookie `yt-dlp`, and structural mobile share-page `window._ROUTER_DATA` / `RENDER_DATA` / `play_addr.url_list` extraction when applicable;
 - do not open Chrome UI; `--cookies-from-browser chrome` reads the existing browser profile directly;
 - ask for an accessible direct video URL or a local downloaded file if the platform still blocks download;
 - stop without summarizing when no MP4, transcript, or keyframes exist.
