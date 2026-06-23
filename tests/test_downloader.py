@@ -43,13 +43,15 @@ class FakeSharePageClient:
         self.video_bytes = video_bytes
         self.fetched_pages = []
         self.downloaded_urls = []
+        self.downloaded_referers = []
 
     def fetch_text(self, url):
         self.fetched_pages.append(url)
         return self.html
 
-    def download(self, url, output_path):
+    def download(self, url, output_path, referer=None):
         self.downloaded_urls.append(url)
+        self.downloaded_referers.append(referer)
         Path(output_path).write_bytes(self.video_bytes)
 
 
@@ -64,6 +66,39 @@ class DownloaderTests(unittest.TestCase):
         urls = extract_play_addr_urls(html)
 
         self.assertEqual(urls, ["https://v3-web.douyinvod.com/demo.mp4?x=1"])
+
+    def test_extract_play_addr_urls_prioritizes_window_router_data(self):
+        html = r'''
+        <script>window.__noise={"url":"https://v3-web.douyinvod.com/noise.mp4"}</script>
+        <script>
+        window._ROUTER_DATA = {
+          "loaderData": {
+            "video_(id)/page": {
+              "videoInfoRes": {
+                "item_list": [
+                  {
+                    "video": {
+                      "play_addr": {
+                        "url_list": [
+                          "https:\/\/aweme.snssdk.com\/aweme\/v1\/playwm\/?video_id=v0300&ratio=720p"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        };
+        </script>
+        '''
+
+        urls = extract_play_addr_urls(html)
+
+        self.assertEqual(
+            urls[0],
+            "https://aweme.snssdk.com/aweme/v1/playwm/?video_id=v0300&ratio=720p",
+        )
 
     def test_fetch_remote_falls_back_to_share_page_play_addr_when_ytdlp_fails(self):
         html = r'{"play_addr":{"url_list":["https:\/\/v3-web.douyinvod.com\/fallback.mp4"]}}'
@@ -83,6 +118,7 @@ class DownloaderTests(unittest.TestCase):
 
         self.assertEqual(page_client.fetched_pages, ["https://www.douyin.com/share/video/123"])
         self.assertEqual(page_client.downloaded_urls, ["https://v3-web.douyinvod.com/fallback.mp4"])
+        self.assertEqual(page_client.downloaded_referers, ["https://www.douyin.com/share/video/123"])
 
     def test_fetch_remote_retries_with_chrome_cookies_before_share_page_fallback(self):
         runner = CookieRetryRunner()

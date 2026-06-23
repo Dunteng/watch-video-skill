@@ -13,6 +13,10 @@ from .subtitles import collect_subtitle_files
 
 VIDEO_EXTENSIONS = {".mp4", ".mkv", ".webm", ".mov", ".m4v"}
 DIRECT_VIDEO_NAME = "share-page-play-addr.mp4"
+MOBILE_USER_AGENT = (
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
+    "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+)
 
 
 class SharePageClient:
@@ -20,10 +24,7 @@ class SharePageClient:
         request = Request(
             url,
             headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
-                ),
+                "User-Agent": MOBILE_USER_AGENT,
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             },
         )
@@ -31,16 +32,16 @@ class SharePageClient:
             raw = response.read()
         return raw.decode("utf-8", errors="replace")
 
-    def download(self, url: str, output_path: Path) -> None:
+    def download(self, url: str, output_path: Path, referer: str | None = None) -> None:
+        headers = {
+            "User-Agent": MOBILE_USER_AGENT,
+            "Accept": "video/*,*/*;q=0.8",
+        }
+        if referer:
+            headers["Referer"] = referer
         request = Request(
             url,
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
-                ),
-                "Accept": "video/*,*/*;q=0.8",
-            },
+            headers=headers,
         )
         with urlopen(request, timeout=60) as response:
             with output_path.open("wb") as handle:
@@ -154,7 +155,7 @@ class YtDlpClient:
             if not play_urls:
                 raise FileNotFoundError("分享页没有发现 play_addr 视频直链")
             output_path = output_dir / DIRECT_VIDEO_NAME
-            self.page_client.download(play_urls[0], output_path)
+            self.page_client.download(play_urls[0], output_path, referer=url)
             if output_path.exists() and output_path.stat().st_size > 0:
                 return output_path
             raise FileNotFoundError("play_addr 下载结束，但没有生成有效视频文件")
@@ -176,15 +177,29 @@ def _media_files(directory: Path) -> set[Path]:
 
 def extract_play_addr_urls(page_html: str) -> list[str]:
     normalized = _normalize_page_text(page_html)
+    play_addr_urls = _extract_play_addr_url_list(normalized)
     urls = re.findall(r"https?://[^\"'<>\s\\]+", normalized)
     results: list[str] = []
     seen: set[str] = set()
-    for url in urls:
+    for url in play_addr_urls + urls:
         cleaned = url.rstrip("),;]")
         if cleaned in seen or not _looks_like_video_url(cleaned):
             continue
         seen.add(cleaned)
         results.append(cleaned)
+    return results
+
+
+def _extract_play_addr_url_list(page_text: str) -> list[str]:
+    # 函数职责：优先抽取抖音 SSR 结构里的真实播放地址，避免被页面噪声 URL 抢先。
+    results: list[str] = []
+    pattern = re.compile(
+        r'"play_addr"\s*:\s*\{.*?"url_list"\s*:\s*\[(?P<urls>.*?)\]',
+        flags=re.DOTALL,
+    )
+    for match in pattern.finditer(page_text):
+        for raw_url in re.findall(r'"([^"]+)"', match.group("urls")):
+            results.append(_normalize_page_text(raw_url))
     return results
 
 
@@ -209,6 +224,7 @@ def _looks_like_video_url(url: str) -> bool:
         ".mp4" in lower
         or "douyinvod.com" in lower
         or "bytevideo" in lower
+        or "snssdk.com/aweme/v1/play" in lower
         or "/video/tos/" in lower
         or "playwm" in lower
     )
