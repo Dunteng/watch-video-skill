@@ -58,4 +58,4 @@ Do not overwrite unrelated sections such as warnings, keyframe hints, OCR, or tr
 
 ## Obsidian Notes
 
-If the user asks for an Obsidian note, use the user's configured vault path when available. Include source URL, title if known, processed date, tags, core conclusion, evidence excerpts, and personal整理. Respect current user instructions before creating or modifying files outside the current workspace.
+If the user asks for an Obsidian note, use the user's configured vault path when available. If the target note is outside the current workspace, first state the target path, why it is needed, and what will be changed, then wait for user confirmation before writing. Include source URL, title if known, processed date, tags, core conclusion, evidence excerpts, and personal整理.

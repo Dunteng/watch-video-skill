@@ -147,6 +147,8 @@ python3 -m watchvideo processes
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)：模块边界和数据流。
 - [docs/OPERATIONS.md](docs/OPERATIONS.md)：本地操作、手动转写、验证和收尾检查。
+- [docs/PUBLISHING.md](docs/PUBLISHING.md)：上传 GitHub 前的文件清单、验证步骤和隐私检查。
+- [evals/skill_scenarios.md](evals/skill_scenarios.md)：验证 Agent 是否正确使用本 skill 的行为场景。
 
 ## 开发验证
 
@@ -158,3 +160,7 @@ python3 -m compileall watchvideo tests
 ```
 
 当前本机没有 `ruff`、`mypy`、`pytest`。如果之后引入这些开发依赖，再把对应命令加入验证流程。
+
+## 长期维护
+
+这个仓库作为长期通用 skill 时，`tests/`、`evals/`、`docs/` 都应该随源码一起保留并上传。不要上传 `analysis/`、本地模型、真实视频、转写结果、关键帧、`.env` 或用户笔记。

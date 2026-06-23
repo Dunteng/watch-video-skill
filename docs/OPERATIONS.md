@@ -136,9 +136,9 @@ python3 -m watchvideo analyze ./video.mp4 \
 
 如果没有安装 `tesseract`，报告会记录 warning，主流程继续完成。
 
-## 抖音验证记录
+## 平台短链验证记录
 
-对链接 `https://v.douyin.com/Iny_KZKsoe8/` 的实测结果：
+对一个已脱敏的平台短链做过实测，结果如下：
 
 - `yt-dlp` 下载成功；
 - 视频实际时长是 `20:24`；

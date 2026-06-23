@@ -1,11 +1,57 @@
+# Python 缓存和测试产物
 __pycache__/
 *.py[cod]
+*$py.class
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# 本地虚拟环境和包构建产物
 .venv/
+venv/
+env/
+.tox/
+build/
+dist/
+*.egg-info/
+
+# 本地配置、密钥和系统文件
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# watchvideo 运行产物
 analysis/
 .tmp-*/
+reports/
+keyframes/
+subtitles/
+transcript/
+video/
+
+# 本地工具、模型和大文件素材
 .tools/
 .models/
-.DS_Store
+models/
+*.ggml
+*.gguf
+*.bin
+*.mp4
+*.mov
+*.m4v
+*.mkv
+*.webm
+*.avi
+*.wav
+*.mp3
+*.m4a
+
+# 编辑器本地状态
+.idea/
+.vscode/
+*.swp
+*.swo

@@ -21,13 +21,15 @@ If neither works, tell the user the skill repository or package is unavailable a
 
 ## 2. Prepare Output Path
 
-Create a readable output slug under `analysis/` when working inside the skill repository:
+Create a readable output slug under the user's current workspace. If you need to `cd` into the skill repository to run `python3 -m watchvideo`, save the user's workspace first and pass an absolute output path:
 
-```text
-analysis/<source-or-topic-slug>
+```bash
+TASK_WORKDIR="$(pwd)"
+cd <watch-video-skill-repo>
+python3 -m watchvideo analyze "<source>" -o "$TASK_WORKDIR/analysis/<source-or-topic-slug>"
 ```
 
-Keep generated media, transcripts, keyframes, and reports inside the output directory. Do not add `analysis/`, `.tools/`, `.venv/`, or model files to git.
+Keep generated media, transcripts, keyframes, and reports inside the output directory. Do not write analysis outputs into the skill installation directory unless it is also the user's current project workspace. Do not add `analysis/`, `.tools/`, `.venv/`, or model files to git.
 
 ## 3. Check Tools
 
@@ -46,13 +48,13 @@ Optional tools: `whisper`, `tesseract`, `whisper.cpp` `whisper-cli` and model.
 Local file:
 
 ```bash
-python3 -m watchvideo analyze ./video.mp4 -o analysis/local-video
+python3 -m watchvideo analyze "$TASK_WORKDIR/video.mp4" -o "$TASK_WORKDIR/analysis/local-video"
 ```
 
 Remote URL:
 
 ```bash
-python3 -m watchvideo analyze "https://example.com/video" -o analysis/remote-video
+python3 -m watchvideo analyze "https://example.com/video" -o "$TASK_WORKDIR/analysis/remote-video"
 ```
 
 Typical higher-signal run:
@@ -64,13 +66,13 @@ python3 -m watchvideo analyze "https://example.com/video" \
   --max-keyframes 80 \
   --sub-lang "zh.*" \
   --sub-lang "en.*" \
-  -o analysis/demo
+  -o "$TASK_WORKDIR/analysis/demo"
 ```
 
 Enable OCR only when visual text, slides, code, tables, or screenshots matter:
 
 ```bash
-python3 -m watchvideo analyze ./video.mp4 --ocr -o analysis/local-video
+python3 -m watchvideo analyze "$TASK_WORKDIR/video.mp4" --ocr -o "$TASK_WORKDIR/analysis/local-video"
 ```
 
 ## 5. Use Local whisper.cpp When Needed
@@ -84,7 +86,7 @@ python3 -m watchvideo analyze "https://example.com/video" \
   --whisper-prompt "Agent, Codex, AI 编程, skill, GitHub" \
   --language zh \
   --max-keyframes 80 \
-  -o analysis/demo
+  -o "$TASK_WORKDIR/analysis/demo"
 ```
 
 Use a domain-specific prompt when the video has known jargon. Do not invent jargon not supported by the content.
@@ -94,8 +96,8 @@ Use a domain-specific prompt when the video has known jargon. Do not invent jarg
 After `report.json` exists:
 
 ```bash
-python3 -m watchvideo summarize analysis/demo/report.json \
-  -o analysis/demo/summary-input.md \
+python3 -m watchvideo summarize "$TASK_WORKDIR/analysis/demo/report.json" \
+  -o "$TASK_WORKDIR/analysis/demo/summary-input.md" \
   --chunk-seconds 300
 ```
 
