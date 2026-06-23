@@ -6,7 +6,7 @@ import shutil
 import sys
 
 from .commands import CommandRunner
-from .models import SubtitleCue
+from .models import SubtitleCue, TranscriptionInfo
 from .subtitles import load_subtitle_file
 
 
@@ -16,10 +16,13 @@ class WhisperTranscriber:
         runner: CommandRunner | None = None,
         ffmpeg: str = "ffmpeg",
         whisper: str = "whisper",
+        model_name: str | None = None,
     ):
         self.runner = runner or CommandRunner()
         self.ffmpeg = ffmpeg
         self.whisper = whisper
+        self.model_name = model_name
+        self.last_info: TranscriptionInfo | None = None
 
     def available(self) -> bool:
         return shutil.which(self.whisper) is not None
@@ -30,6 +33,7 @@ class WhisperTranscriber:
         output_dir: Path,
         language: str | None = None,
     ) -> list[SubtitleCue]:
+        self.last_info = None
         if not self.available():
             return []
 
@@ -70,6 +74,13 @@ class WhisperTranscriber:
         srt_files = sorted(output_dir.glob("*.srt"), key=lambda path: path.stat().st_mtime, reverse=True)
         if not srt_files:
             return []
+        self.last_info = TranscriptionInfo(
+            source="system whisper",
+            model=self.model_name or "default",
+            language=language,
+            prompt_used=False,
+            transcript_files=[srt_files[0]],
+        )
         return load_subtitle_file(srt_files[0])
 
 
@@ -87,6 +98,7 @@ class WhisperCppTranscriber:
         self.whisper_cpp_bin = Path(whisper_cpp_bin) if whisper_cpp_bin else None
         self.model_path = Path(model_path) if model_path else None
         self.prompt = prompt
+        self.last_info: TranscriptionInfo | None = None
 
     def available(self) -> bool:
         return self.unavailable_reason() is None
@@ -112,6 +124,7 @@ class WhisperCppTranscriber:
         language: str | None = None,
     ) -> list[SubtitleCue]:
         # 函数边界：只封装 whisper.cpp CLI，不负责下载模型或构建二进制。
+        self.last_info = None
         if not self.available():
             return []
 
@@ -156,6 +169,14 @@ class WhisperCppTranscriber:
         srt_files = sorted(output_dir.glob("*.srt"), key=lambda path: path.stat().st_mtime, reverse=True)
         if not srt_files:
             return []
+        transcript_files = sorted(output_dir.glob("*.srt")) + sorted(output_dir.glob("*.txt"))
+        self.last_info = TranscriptionInfo(
+            source="whisper.cpp",
+            model=_whisper_cpp_model_name(self.model_path),
+            language=language,
+            prompt_used=bool(self.prompt),
+            transcript_files=transcript_files,
+        )
         return load_subtitle_file(srt_files[0])
 
     def _resolved_binary(self) -> Path | None:
@@ -167,6 +188,15 @@ class WhisperCppTranscriber:
             found = shutil.which(str(self.whisper_cpp_bin))
             return Path(found) if found else None
         return None
+
+
+def _whisper_cpp_model_name(model_path: Path | None) -> str | None:
+    if model_path is None:
+        return None
+    name = model_path.name
+    if name.startswith("ggml-") and name.endswith(".bin"):
+        return name[len("ggml-") : -len(".bin")]
+    return model_path.stem
 
 
 class WhisperCppAutoSetup:

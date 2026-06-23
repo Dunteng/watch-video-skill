@@ -14,7 +14,7 @@ Use this reference when an analysis directory already exists or after running `a
 
 If `failure.md` exists, read it first. It means no usable MP4, transcript, or keyframes were produced; report the blocker and do not summarize video content.
 
-Start with `report.md` to understand source, duration, resolution, subtitle count, download diagnostics, warnings, and whether a summary already exists.
+Start with `report.md` to understand source, duration, resolution, subtitle count, download diagnostics, transcription info, warnings, and whether a summary already exists.
 
 Read `summary-input.md` for chunked transcript. If it is missing, generate it from `report.json` with the `summarize` command.
 
@@ -25,6 +25,8 @@ Inspect keyframes when:
 - the user wants a learning note, interview answer, tutorial outline, or visual explanation.
 
 Use `report.json` for exact paths, timestamps, and the structured `download_attempts` list. Use `failure.json` for structured failure details when normal reports are absent. Do not copy the full JSON into the final answer unless the user asks.
+
+Use `转写信息` to judge transcript reliability: system whisper versus whisper.cpp, model name, language parameter, prompt usage, and generated transcript files.
 
 ## Summary Output Standard
 

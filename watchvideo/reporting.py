@@ -63,6 +63,22 @@ def render_markdown_report(report: AnalysisReport) -> str:
             detail = f": {attempt.detail}" if attempt.detail else ""
             lines.append(f"- `{attempt.status}` {attempt.step}{detail}")
 
+    if report.transcription_info:
+        info = report.transcription_info
+        transcript_files = ", ".join(f"`{path}`" for path in info.transcript_files) or "`none`"
+        lines.extend(
+            [
+                "",
+                "## 转写信息",
+                "",
+                f"- 来源: `{info.source}`",
+                f"- 模型: `{info.model or 'unknown'}`",
+                f"- 语言参数: `{info.language or 'auto'}`",
+                f"- 使用 prompt: `{'yes' if info.prompt_used else 'no'}`",
+                f"- 逐字稿文件: {transcript_files}",
+            ]
+        )
+
     if report.summary_text.strip():
         lines.extend(["", "## 视频内容总结", ""])
         lines.append(report.summary_text.strip())

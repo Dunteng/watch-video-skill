@@ -3,7 +3,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from watchvideo.analyzer import VideoAnalyzer
-from watchvideo.models import DownloadAttempt, Keyframe, MediaInfo, SubtitleCue
+from watchvideo.models import DownloadAttempt, Keyframe, MediaInfo, SubtitleCue, TranscriptionInfo
 
 
 class FakeDownloader:
@@ -49,9 +49,17 @@ class FakeTranscriber:
         self.cues = [
             SubtitleCue(start_seconds=0.0, end_seconds=1.0, text="转写字幕")
         ]
+        self.last_info = None
 
     def transcribe(self, video_path, output_dir, language):
         self.called = True
+        self.last_info = TranscriptionInfo(
+            source="fake-asr",
+            model="fake-model",
+            language=language,
+            prompt_used=False,
+            transcript_files=[Path(output_dir) / "fake.srt"],
+        )
         return self.cues
 
 
@@ -133,6 +141,10 @@ class AnalyzerTests(unittest.TestCase):
         self.assertTrue(whisper_cpp.called)
         self.assertTrue(ocr.called)
         self.assertEqual(report.transcript_text, "转写字幕")
+        self.assertIsNotNone(report.transcription_info)
+        assert report.transcription_info is not None
+        self.assertEqual(report.transcription_info.source, "fake-asr")
+        self.assertEqual(report.transcription_info.model, "fake-model")
 
     def test_analysis_records_whisper_cpp_config_warning_when_no_transcriber_is_available(self):
         primary = FakeTranscriber()

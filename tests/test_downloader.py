@@ -37,6 +37,27 @@ class CookieRetryRunner:
         return CommandResult(args=list(args), returncode=0, stdout="", stderr="")
 
 
+class CookieAutoFallbackRunner:
+    def __init__(self):
+        self.commands = []
+
+    def run(self, args, cwd=None, check=True, text=True):
+        self.commands.append(list(args))
+        browser = _browser_from_args(args)
+        if browser != "edge":
+            result = CommandResult(
+                args=list(args),
+                returncode=1,
+                stdout="",
+                stderr="Fresh cookies are needed",
+            )
+            raise CommandError(result)
+        output_dir = Path(args[args.index("-P") + 1])
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "edge-cookie-video.mp4").write_bytes(b"mp4")
+        return CommandResult(args=list(args), returncode=0, stdout="", stderr="")
+
+
 class FakeSharePageClient:
     def __init__(self, html="", video_bytes=b"video"):
         self.html = html
@@ -53,6 +74,22 @@ class FakeSharePageClient:
         self.downloaded_urls.append(url)
         self.downloaded_referers.append(referer)
         Path(output_path).write_bytes(self.video_bytes)
+
+
+class RedirectingSharePageClient(FakeSharePageClient):
+    def __init__(self, html="", video_bytes=b"video", final_url="https://cdn.example.test/video.mp4"):
+        super().__init__(html=html, video_bytes=video_bytes)
+        self.final_url = final_url
+
+    def download(self, url, output_path, referer=None):
+        super().download(url, output_path, referer=referer)
+        return self.final_url
+
+
+def _browser_from_args(args):
+    if "--cookies-from-browser" not in args:
+        return None
+    return args[args.index("--cookies-from-browser") + 1]
 
 
 class DownloaderTests(unittest.TestCase):
@@ -147,6 +184,47 @@ class DownloaderTests(unittest.TestCase):
         self.assertEqual(page_client.downloaded_urls, ["https://v3-web.douyinvod.com/fallback.mp4"])
         self.assertEqual(page_client.downloaded_referers, ["https://www.douyin.com/share/video/123"])
 
+    def test_fetch_remote_fixture_covers_router_data_playwm_and_cdn_redirect(self):
+        fixture = Path(__file__).parent / "fixtures" / "douyin_share_router_data.html"
+        page_client = RedirectingSharePageClient(
+            html=fixture.read_text(encoding="utf-8"),
+            video_bytes=b"mp4",
+            final_url="https://v26-cdn.example.test/obj/tos-cn-ve/redacted.mp4",
+        )
+
+        with TemporaryDirectory() as tmp:
+            client = YtDlpClient(
+                runner=FailingRunner(),
+                page_client=page_client,
+            )
+            video_path = client.fetch_remote(
+                "https://www.douyin.com/share/video/123",
+                output_dir=Path(tmp),
+            )
+
+            self.assertEqual(video_path.name, "share-page-play-addr.mp4")
+            self.assertEqual(video_path.read_bytes(), b"mp4")
+
+        self.assertEqual(page_client.fetched_pages, ["https://www.douyin.com/share/video/123"])
+        self.assertEqual(
+            page_client.downloaded_urls,
+            [
+                "https://aweme.snssdk.com/aweme/v1/playwm/?video_id=v0300redacted&ratio=720p&line=0"
+            ],
+        )
+        self.assertEqual(page_client.downloaded_referers, ["https://www.douyin.com/share/video/123"])
+        attempts = [(attempt.step, attempt.status, attempt.detail) for attempt in client.download_attempts]
+        self.assertIn(("mobile share page play_addr", "ok", "1 candidate(s)"), attempts)
+        self.assertTrue(
+            any(
+                step == "direct video download"
+                and status == "ok"
+                and "v26-cdn.example.test" in detail
+                and "share-page-play-addr.mp4" in detail
+                for step, status, detail in attempts
+            )
+        )
+
     def test_fetch_remote_retries_with_chrome_cookies_before_share_page_fallback(self):
         runner = CookieRetryRunner()
         page_client = FakeSharePageClient(html="<html>should not fetch</html>")
@@ -165,6 +243,26 @@ class DownloaderTests(unittest.TestCase):
         self.assertNotIn("--cookies-from-browser", runner.commands[0])
         self.assertIn("--cookies-from-browser", runner.commands[1])
         self.assertIn("chrome", runner.commands[1])
+        self.assertEqual(page_client.fetched_pages, [])
+
+    def test_fetch_remote_auto_cookies_falls_back_across_browsers(self):
+        runner = CookieAutoFallbackRunner()
+        page_client = FakeSharePageClient(html="<html>should not fetch</html>")
+
+        with TemporaryDirectory() as tmp:
+            video_path = YtDlpClient(
+                runner=runner,
+                page_client=page_client,
+                cookies_from_browser="auto",
+            ).fetch_remote(
+                "https://www.douyin.com/share/video/123",
+                output_dir=Path(tmp),
+            )
+
+            self.assertEqual(video_path.name, "edge-cookie-video.mp4")
+
+        browsers = [_browser_from_args(command) for command in runner.commands]
+        self.assertEqual(browsers, [None, "chrome", "chromium", "edge"])
         self.assertEqual(page_client.fetched_pages, [])
 
     def test_fetch_remote_failure_mentions_cookies_or_local_file(self):

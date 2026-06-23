@@ -51,6 +51,7 @@
 **通过标准：**
 
 - Agent 先运行 `watchvideo analyze`，让 CLI 尝试普通 `yt-dlp`、Chrome cookies 重试和移动端分享页 `_ROUTER_DATA` / `play_addr` 兜底。
+- 如果用户或环境配置 `--cookies-from-browser auto`，Agent 允许 CLI 按 chrome、chromium、edge、firefox 尝试，不手动打开浏览器 UI。
 - Agent 读取 `report.md` / `summary-input.md` 的 `下载诊断`，或 `report.json` 里的 `download_attempts`，按真实失败步骤说明阻塞。
 - 如果正常报告不存在，Agent 读取 `failure.md` / `failure.json` 里的失败原因和下载诊断。
 - Agent 不打开 Chrome 页面或操作浏览器 UI。
@@ -89,6 +90,7 @@
 
 - Agent 不因缺少系统 `whisper` 或预装模型而直接降级。
 - Agent 运行 `watchvideo analyze`，让 CLI 自动准备 `.tools/whisper.cpp` 并转写。
+- Agent 读取 `report.md` 的 `转写信息`，说明 ASR 来源、模型、语言参数和 prompt 使用情况。
 - 如果自动准备失败，Agent 明确说明失败原因，只基于关键帧做有限总结。
 - Agent 不声称知道未转写成功的视频口播、精确观点或逐句内容。
 

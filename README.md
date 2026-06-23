@@ -9,13 +9,13 @@
 脚本可以自动处理：
 
 - 下载 `yt-dlp` 支持的视频链接；
-- `yt-dlp` 失败时结构化解析移动端分享页 SSR 里的 `_ROUTER_DATA` / `play_addr` 视频直链；
+- `yt-dlp` 失败时结构化解析移动端分享页 SSR 里的 `_ROUTER_DATA` / `RENDER_DATA` / `play_addr` 视频直链；
 - 在报告里记录普通下载、浏览器 cookies 重试、SSR 解析和直链下载的诊断；
 - 下载平台字幕或自动字幕；
 - 探测视频时长、分辨率等元信息；
 - 解析 `.srt` / `.vtt` 字幕；
 - 没有字幕时调用系统 `whisper`，必要时自动准备 `.tools/whisper.cpp` 转写；
-- 抽取关键帧；
+- 抽取关键帧，并跳过高度相似的重复画面；
 - 生成 `report.json` 和 `report.md`；
 - 生成面向 Agent 阅读的 `summary-input.md`；
 - 检查疑似残留的高负载进程。
@@ -154,6 +154,14 @@ python3 -m watchvideo analyze "https://example.com/video" \
   -o "$TASK_WORKDIR/analysis/demo"
 ```
 
+需要自动尝试多个浏览器 cookies 时加：
+
+```bash
+python3 -m watchvideo analyze "https://example.com/video" \
+  --cookies-from-browser auto \
+  -o "$TASK_WORKDIR/analysis/demo"
+```
+
 生成摘要输入包：
 
 ```bash
@@ -173,7 +181,7 @@ python3 -m watchvideo processes
 一次分析通常会生成：
 
 - `report.json`：结构化报告，适合程序继续处理；
-- `report.md`：人类可读报告，包含元信息、下载诊断、字幕文本和可选总结；
+- `report.md`：人类可读报告，包含元信息、下载诊断、转写信息、字幕文本和可选总结；
 - `summary-input.md`：面向 Agent 的摘要输入包，包含下载诊断和分段字幕；
 - `video/`：网络视频下载结果；
 - `subtitles/`：平台字幕或自动字幕；
@@ -196,6 +204,8 @@ python3 -m watchvideo processes
 - `whisper` 不可用或没有结果时，默认在 skill 仓库的 `.tools/whisper.cpp` 下 clone、下载 `base` 模型并构建 `whisper-cli`；
 - 系统没有 `cmake` 时，会尝试在 `.tools/.venv` 内准备本地 `cmake`，不修改系统环境；
 - `.tools/` 和模型文件已被 `.gitignore` 忽略，不应提交。
+
+`report.md` 会记录 ASR 来源、模型、语言参数、是否使用 prompt，以及生成的逐字稿文件。
 
 禁用自动准备：
 
@@ -246,6 +256,8 @@ python3 -m unittest discover -s tests -v
 python3 -m compileall watchvideo tests
 python3 -m watchvideo doctor
 ```
+
+下载链路有脱敏分享页 fixture，覆盖 `_ROUTER_DATA`、`play_addr.url_list`、`aweme/v1/playwm` 和 CDN MP4 跳转诊断。
 
 `doctor` 中不能出现 `REQUIRED_MISSING`。`OPTIONAL_MISSING` 可以接受，但会影响本地转写或 OCR 能力。
 

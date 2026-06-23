@@ -121,6 +121,39 @@ class WhisperCppTranscriberTests(unittest.TestCase):
         self.assertIn("--prompt", whisper_command)
         self.assertIn("Agent, Codex", whisper_command)
 
+    def test_whisper_cpp_records_transcription_metadata(self):
+        runner = FakeRunner()
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "video.mp4"
+            video.write_bytes(b"fake")
+            whisper_bin = root / "whisper-cli"
+            whisper_bin.write_text("#!/bin/sh\n", encoding="utf-8")
+            model = root / "ggml-base.bin"
+            model.write_bytes(b"model")
+            transcriber = WhisperCppTranscriber(
+                runner=runner,
+                whisper_cpp_bin=whisper_bin,
+                model_path=model,
+                prompt="Agent, Codex",
+            )
+
+            transcriber.transcribe(
+                video_path=video,
+                output_dir=root / "transcript",
+                language="zh",
+            )
+
+        self.assertIsNotNone(transcriber.last_info)
+        assert transcriber.last_info is not None
+        self.assertEqual(transcriber.last_info.source, "whisper.cpp")
+        self.assertEqual(transcriber.last_info.model, "base")
+        self.assertEqual(transcriber.last_info.language, "zh")
+        self.assertTrue(transcriber.last_info.prompt_used)
+        self.assertTrue(
+            any(path.name == "base.srt" for path in transcriber.last_info.transcript_files)
+        )
+
 
 class WhisperCppAutoSetupTests(unittest.TestCase):
     def test_installs_whisper_cpp_under_tools_dir_and_returns_transcriber(self):

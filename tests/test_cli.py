@@ -69,10 +69,14 @@ class CliTests(unittest.TestCase):
         firefox_args = build_parser().parse_args(
             ["analyze", "video.mp4", "--cookies-from-browser", "firefox"]
         )
+        auto_args = build_parser().parse_args(
+            ["analyze", "video.mp4", "--cookies-from-browser", "auto"]
+        )
 
         self.assertEqual(default_args.cookies_from_browser, "chrome")
         self.assertIsNone(disabled_args.cookies_from_browser)
         self.assertEqual(firefox_args.cookies_from_browser, "firefox")
+        self.assertEqual(auto_args.cookies_from_browser, "auto")
 
     def test_main_analyze_writes_failure_report_when_analysis_fails(self):
         with TemporaryDirectory() as tmp:

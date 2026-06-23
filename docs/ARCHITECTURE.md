@@ -25,19 +25,19 @@ source
   编排层。负责决定先下载字幕、再下载视频、再加载字幕或转写、必要时准备 `whisper.cpp`、最后抽关键帧。这里不直接写下载、转写或抽帧细节。
 
 - `watchvideo/downloader.py`
-  下载适配层。优先使用 `yt-dlp`；遇到 cookies/login/bot 拦截时用 `--cookies-from-browser chrome` 重试；仍失败时用移动端 UA 抓分享页，先结构化解析 `window._ROUTER_DATA`、`RENDER_DATA` 和 `video.play_addr.url_list`，再用正则兜底查找 `play_addr` 和视频 URL，最后带 Referer 下载跳转后的 MP4。这里不打开浏览器 UI，并把每个下载阶段写入 `DownloadAttempt` 诊断。
+  下载适配层。优先使用 `yt-dlp`；遇到 cookies/login/bot 拦截时用 `--cookies-from-browser chrome` 重试，`auto` 模式会按 chrome、chromium、edge、firefox 尝试；仍失败时用移动端 UA 抓分享页，先结构化解析 `window._ROUTER_DATA`、`RENDER_DATA` 和 `video.play_addr.url_list`，再用正则兜底查找 `play_addr` 和视频 URL，最后带 Referer 下载跳转后的 MP4。这里不打开浏览器 UI，并把每个下载阶段写入 `DownloadAttempt` 诊断。
 
 - `watchvideo/media.py`
   `ffmpeg` / `ffprobe` 适配层。负责读取视频元信息、抽候选帧、保存代表帧。
 
 - `watchvideo/keyframes.py`
-  关键帧策略。当前按固定时间窗口取三个候选点，避开窗口首尾，然后用 PPM 图片的边缘变化做清晰度评分。
+  关键帧策略。当前按固定时间窗口取三个候选点，避开窗口首尾，然后用 PPM 图片的边缘变化做清晰度评分，并跳过与已保留画面高度相似的帧。
 
 - `watchvideo/subtitles.py`
   字幕解析。支持 `.srt` 和 `.vtt`，会清理标签、合并多行文本、去掉相邻重复句。
 
 - `watchvideo/transcription.py`
-  自动转写入口。支持系统 PATH 上名为 `whisper` 的 CLI，支持显式传入本地 `whisper.cpp`，也支持在 `.tools/whisper.cpp` 下自动 clone、下载 `base` 模型并构建 `whisper-cli`。
+  自动转写入口。支持系统 PATH 上名为 `whisper` 的 CLI，支持显式传入本地 `whisper.cpp`，也支持在 `.tools/whisper.cpp` 下自动 clone、下载 `base` 模型并构建 `whisper-cli`。转写成功后会记录 ASR 来源、模型、语言、prompt 和逐字稿文件。
 
 - `watchvideo/ocr.py`
   OCR 入口。当前只在用户传 `--ocr` 时调用 `tesseract`，并只处理已经抽出的关键帧。
@@ -52,7 +52,7 @@ source
   报告写出。成功时生成 `report.json` 和 `report.md`；失败时生成 `failure.json` 和 `failure.md`。Markdown 报告面向人阅读，不逐张列出关键帧；关键帧明细保留在 JSON。
 
 - `watchvideo/models.py`
-  数据模型。集中定义 source、media、subtitle、keyframe、download attempt、report 等结构。
+  数据模型。集中定义 source、media、subtitle、keyframe、download attempt、transcription info、report 等结构。
 
 ## 大模型能力边界
 
@@ -71,7 +71,7 @@ source
 
 ## 当前限制
 
-- 没有场景检测，当前是固定窗口采样加清晰度评分。
+- 没有场景检测，当前是固定窗口采样、清晰度评分和相似帧去重。
 - 没有内置摘要生成，视频总结仍需要 Codex 或其他 LLM 读取报告后完成。
 - OCR 只处理关键帧，不覆盖所有视频帧。
 - 进程检查只报告，不自动结束进程。
@@ -81,7 +81,7 @@ source
 
 优先级从高到低：
 
-1. 增加场景检测或镜头切分，减少固定窗口采样的冗余。
+1. 增加场景检测或镜头切分，进一步减少固定窗口采样的冗余。
 2. 改进 OCR 区域选择，只处理底部字幕区或关键帧主要文本区。
 3. 增加可选 LLM 集成，把 `summarize` 输入包送入 OpenAI API。
-4. 增加更完整的集成测试，覆盖真实短视频样本。
+4. 增加更多脱敏平台 fixture，覆盖真实短视频样本的页面结构变化。

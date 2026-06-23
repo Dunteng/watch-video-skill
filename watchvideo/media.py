@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from .commands import CommandRunner
-from .keyframes import candidate_timestamps, score_ppm_sharpness
+from .keyframes import candidate_timestamps, is_similar_ppm, score_ppm_sharpness
 from .models import Keyframe, MediaInfo
 
 
@@ -59,23 +59,29 @@ class FfmpegClient:
             return []
 
         frames: list[Keyframe] = []
-        for index, group in enumerate(candidate_timestamps(duration_seconds, interval_seconds), start=1):
+        selected_ppms: list[bytes] = []
+        for group in candidate_timestamps(duration_seconds, interval_seconds):
             if max_keyframes is not None and len(frames) >= max_keyframes:
                 break
             best_timestamp: float | None = None
+            best_ppm: bytes | None = None
             best_score = -1.0
             for timestamp in group:
                 ppm = self.extract_ppm(video_path, timestamp)
                 score = score_ppm_sharpness(ppm)
                 if score > best_score:
                     best_timestamp = timestamp
+                    best_ppm = ppm
                     best_score = score
 
-            if best_timestamp is None:
+            if best_timestamp is None or best_ppm is None:
+                continue
+            if any(is_similar_ppm(best_ppm, existing) for existing in selected_ppms):
                 continue
 
-            frame_path = output_dir / f"frame_{index:04d}.jpg"
+            frame_path = output_dir / f"frame_{len(frames) + 1:04d}.jpg"
             self.extract_frame(video_path, best_timestamp, frame_path)
+            selected_ppms.append(best_ppm)
             frames.append(
                 Keyframe(
                     path=frame_path,

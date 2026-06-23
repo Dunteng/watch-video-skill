@@ -61,6 +61,15 @@ class DownloadAttempt:
 
 
 @dataclass(frozen=True)
+class TranscriptionInfo:
+    source: str
+    model: str | None = None
+    language: str | None = None
+    prompt_used: bool = False
+    transcript_files: list[Path] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class AnalysisReport:
     source: Source
     work_dir: Path
@@ -73,6 +82,7 @@ class AnalysisReport:
     ocr_results: list[OcrResult] = field(default_factory=list)
     subtitle_files: list[Path] = field(default_factory=list)
     download_attempts: list[DownloadAttempt] = field(default_factory=list)
+    transcription_info: TranscriptionInfo | None = None
     warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -126,5 +136,18 @@ class AnalysisReport:
                 }
                 for attempt in self.download_attempts
             ],
+            "transcription_info": (
+                {
+                    "source": self.transcription_info.source,
+                    "model": self.transcription_info.model,
+                    "language": self.transcription_info.language,
+                    "prompt_used": self.transcription_info.prompt_used,
+                    "transcript_files": [
+                        str(path) for path in self.transcription_info.transcript_files
+                    ],
+                }
+                if self.transcription_info
+                else None
+            ),
             "warnings": self.warnings,
         }

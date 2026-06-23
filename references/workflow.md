@@ -62,7 +62,7 @@ python3 -m watchvideo analyze "https://example.com/video" -o "$TASK_WORKDIR/anal
 For remote URLs, evidence acquisition order is mandatory:
 
 1. Run `watchvideo analyze`, which tries plain `yt-dlp`.
-2. On cookies/login/bot errors, the CLI retries `yt-dlp --cookies-from-browser chrome` by default. Do not open Chrome UI.
+2. On cookies/login/bot errors, the CLI retries `yt-dlp --cookies-from-browser chrome` by default. Use `--cookies-from-browser auto` to try chrome, chromium, edge, then firefox. Do not open Chrome UI.
 3. If `yt-dlp` still fails, the CLI fetches the mobile share page, structurally parses `window._ROUTER_DATA`, `RENDER_DATA`, and `video.play_addr.url_list` before regex fallbacks, then downloads `aweme/v1/playwm` or CDN URLs with mobile UA and Referer.
 4. If all attempts fail, read `failure.md` / `failure.json`, stop, and ask for a local video file or an accessible direct video URL.
 
@@ -102,6 +102,8 @@ python3 -m watchvideo analyze "https://example.com/video" \
 ```
 
 Use `--no-auto-transcribe-setup` only when the user wants to avoid tool downloads/builds. Use `--tools-dir <path>` to place the `whisper.cpp` cache somewhere explicit. If the user provides `--whisper-cpp-bin` or `--whisper-model`, treat those paths as intentional and fix missing paths instead of silently replacing them.
+
+Read `report.md`'s `转写信息` section before trusting ASR-heavy summaries. It records ASR source, model, language, prompt usage, and transcript files.
 
 ## 6. Generate Summary Input
 

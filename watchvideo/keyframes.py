@@ -92,3 +92,27 @@ def score_ppm_sharpness(data: bytes) -> float:
                 total += abs(current - gray[row + image.width + x])
                 count += 1
     return total / count if count else 0.0
+
+
+def is_similar_ppm(left: bytes, right: bytes, threshold: float = 3.0) -> bool:
+    left_image = parse_ppm(left)
+    right_image = parse_ppm(right)
+    if left_image.width != right_image.width or left_image.height != right_image.height:
+        return False
+
+    total = 0.0
+    count = 0
+    for index in range(0, len(left_image.pixels), 3):
+        left_gray = (
+            0.299 * left_image.pixels[index]
+            + 0.587 * left_image.pixels[index + 1]
+            + 0.114 * left_image.pixels[index + 2]
+        )
+        right_gray = (
+            0.299 * right_image.pixels[index]
+            + 0.587 * right_image.pixels[index + 1]
+            + 0.114 * right_image.pixels[index + 2]
+        )
+        total += abs(left_gray - right_gray)
+        count += 1
+    return (total / count if count else 0.0) <= threshold

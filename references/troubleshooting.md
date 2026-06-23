@@ -40,6 +40,7 @@ For a URL failure:
 - otherwise read `下载诊断` in `report.md` / `summary-input.md`, or `download_attempts` in `report.json`, before explaining the blocker;
 - mention that `watchvideo` tried plain `yt-dlp`, browser-cookie `yt-dlp`, and structural mobile share-page `window._ROUTER_DATA` / `RENDER_DATA` / `play_addr.url_list` extraction when applicable;
 - do not open Chrome UI; `--cookies-from-browser chrome` reads the existing browser profile directly;
+- use `--cookies-from-browser auto` when Chrome cookies are unavailable but another local browser may have a usable session;
 - ask for an accessible direct video URL or a local downloaded file if the platform still blocks download;
 - stop without summarizing when no MP4, transcript, or keyframes exist.
 

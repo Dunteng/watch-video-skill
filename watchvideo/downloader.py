@@ -15,6 +15,7 @@ from .subtitles import collect_subtitle_files
 
 VIDEO_EXTENSIONS = {".mp4", ".mkv", ".webm", ".mov", ".m4v"}
 DIRECT_VIDEO_NAME = "share-page-play-addr.mp4"
+AUTO_COOKIE_BROWSERS = ("chrome", "chromium", "edge", "firefox")
 MOBILE_USER_AGENT = (
     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
     "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
@@ -34,7 +35,7 @@ class SharePageClient:
             raw = response.read()
         return raw.decode("utf-8", errors="replace")
 
-    def download(self, url: str, output_path: Path, referer: str | None = None) -> None:
+    def download(self, url: str, output_path: Path, referer: str | None = None) -> str:
         headers = {
             "User-Agent": MOBILE_USER_AGENT,
             "Accept": "video/*,*/*;q=0.8",
@@ -48,6 +49,7 @@ class SharePageClient:
         with urlopen(request, timeout=60) as response:
             with output_path.open("wb") as handle:
                 shutil.copyfileobj(response, handle)
+            return response.geturl()
 
 
 class YtDlpClient:
@@ -110,25 +112,26 @@ class YtDlpClient:
             self._record_download_attempt("plain yt-dlp", "failed", exc)
             original_error = exc
             if _is_cookie_error(exc) and self.cookies_from_browser:
-                try:
-                    self._run_yt_dlp_video(
-                        url,
-                        output_dir,
-                        format_selector,
-                        cookies_from_browser=self.cookies_from_browser,
-                    )
-                    return self._latest_downloaded_media(
-                        output_dir=output_dir,
-                        before=before,
-                        step=f"yt-dlp browser cookies ({self.cookies_from_browser})",
-                    )
-                except (CommandError, FileNotFoundError, OSError) as cookie_exc:
-                    self._record_download_attempt(
-                        f"yt-dlp browser cookies ({self.cookies_from_browser})",
-                        "failed",
-                        cookie_exc,
-                    )
-                    original_error = cookie_exc
+                for browser in self._cookie_browsers():
+                    try:
+                        self._run_yt_dlp_video(
+                            url,
+                            output_dir,
+                            format_selector,
+                            cookies_from_browser=browser,
+                        )
+                        return self._latest_downloaded_media(
+                            output_dir=output_dir,
+                            before=before,
+                            step=f"yt-dlp browser cookies ({browser})",
+                        )
+                    except (CommandError, FileNotFoundError, OSError) as cookie_exc:
+                        self._record_download_attempt(
+                            f"yt-dlp browser cookies ({browser})",
+                            "failed",
+                            cookie_exc,
+                        )
+                        original_error = cookie_exc
             elif _is_cookie_error(exc):
                 self._record_download_attempt(
                     "yt-dlp browser cookies",
@@ -181,6 +184,11 @@ class YtDlpClient:
             command[1:1] = ["--cookies-from-browser", cookies_from_browser]
         self.runner.run(command)
 
+    def _cookie_browsers(self) -> list[str]:
+        if self.cookies_from_browser == "auto":
+            return list(AUTO_COOKIE_BROWSERS)
+        return [self.cookies_from_browser] if self.cookies_from_browser else []
+
     def _fetch_remote_from_share_page(self, url: str, output_dir: Path, original_error: Exception) -> Path:
         # 函数职责：只尝试公开分享页里的直链；浏览器 cookies 由 yt-dlp 路径读取。
         try:
@@ -203,9 +211,12 @@ class YtDlpClient:
         )
         output_path = output_dir / DIRECT_VIDEO_NAME
         try:
-            self.page_client.download(play_urls[0], output_path, referer=url)
+            final_url = self.page_client.download(play_urls[0], output_path, referer=url)
             if output_path.exists() and output_path.stat().st_size > 0:
-                self._record_download_attempt("direct video download", "ok", output_path.name)
+                detail = output_path.name
+                if final_url and final_url != play_urls[0]:
+                    detail = f"{output_path.name} via {final_url}"
+                self._record_download_attempt("direct video download", "ok", detail)
                 return output_path
             raise FileNotFoundError("play_addr 下载结束，但没有生成有效视频文件")
         except (FileNotFoundError, OSError, ValueError) as exc:

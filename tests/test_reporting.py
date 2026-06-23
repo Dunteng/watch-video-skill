@@ -1,7 +1,15 @@
 from pathlib import Path
 import unittest
 
-from watchvideo.models import AnalysisReport, DownloadAttempt, Keyframe, MediaInfo, OcrResult, Source
+from watchvideo.models import (
+    AnalysisReport,
+    DownloadAttempt,
+    Keyframe,
+    MediaInfo,
+    OcrResult,
+    Source,
+    TranscriptionInfo,
+)
 from watchvideo.reporting import render_markdown_report
 
 
@@ -119,6 +127,41 @@ class ReportingTests(unittest.TestCase):
         self.assertIn("failed", markdown)
         self.assertIn("fresh cookies", markdown)
         self.assertIn("mobile share page play_addr", markdown)
+
+    def test_markdown_report_includes_transcription_metadata_when_available(self):
+        report = AnalysisReport(
+            source=Source(kind="file", value="video.mp4", path=Path("video.mp4")),
+            work_dir=Path("analysis/demo"),
+            video_path=Path("video.mp4"),
+            media=MediaInfo(
+                path=Path("video.mp4"),
+                duration_seconds=12.0,
+                width=1280,
+                height=720,
+            ),
+            transcript_cues=[],
+            transcript_text="转写文本",
+            keyframes=[],
+            transcription_info=TranscriptionInfo(
+                source="whisper.cpp",
+                model="base",
+                language="zh",
+                prompt_used=True,
+                transcript_files=[
+                    Path("analysis/demo/transcript/base.srt"),
+                    Path("analysis/demo/transcript/base.txt"),
+                ],
+            ),
+        )
+
+        markdown = render_markdown_report(report)
+
+        self.assertIn("## 转写信息", markdown)
+        self.assertIn("来源: `whisper.cpp`", markdown)
+        self.assertIn("模型: `base`", markdown)
+        self.assertIn("语言参数: `zh`", markdown)
+        self.assertIn("使用 prompt: `yes`", markdown)
+        self.assertIn("base.srt", markdown)
 
 
 if __name__ == "__main__":

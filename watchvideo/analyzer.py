@@ -5,7 +5,7 @@ from pathlib import Path
 from .commands import CommandError
 from .downloader import YtDlpClient
 from .media import FfmpegClient
-from .models import AnalysisReport, DownloadAttempt, Source, SubtitleCue
+from .models import AnalysisReport, DownloadAttempt, Source, SubtitleCue, TranscriptionInfo
 from .ocr import TesseractOcr
 from .sources import classify_source
 from .subtitles import collect_subtitle_files, cues_to_plain_text, load_subtitle_file
@@ -57,7 +57,7 @@ class VideoAnalyzer:
         )
 
         media = self.media_client.probe(video_path)
-        transcript_cues = self._load_or_transcribe(
+        transcript_cues, transcription_info = self._load_or_transcribe(
             video_path=video_path,
             output_dir=output_dir,
             subtitle_files=subtitle_files,
@@ -84,6 +84,7 @@ class VideoAnalyzer:
             ocr_results=ocr_results,
             subtitle_files=subtitle_files,
             download_attempts=self._download_attempts_for_report(source),
+            transcription_info=transcription_info,
             warnings=warnings,
         )
 
@@ -125,11 +126,17 @@ class VideoAnalyzer:
         subtitle_files: list[Path],
         language: str | None,
         warnings: list[str],
-    ) -> list[SubtitleCue]:
+    ) -> tuple[list[SubtitleCue], TranscriptionInfo | None]:
         for subtitle_file in subtitle_files:
             cues = load_subtitle_file(subtitle_file)
             if cues:
-                return cues
+                return cues, TranscriptionInfo(
+                    source="subtitle",
+                    model=None,
+                    language=language,
+                    prompt_used=False,
+                    transcript_files=subtitle_files,
+                )
 
         try:
             cues = self.transcriber.transcribe(
@@ -142,7 +149,11 @@ class VideoAnalyzer:
             cues = []
 
         if cues:
-            return cues
+            return cues, self._transcription_info(
+                self.transcriber,
+                default_source="system whisper",
+                language=language,
+            )
 
         unavailable_reason = getattr(self.whisper_cpp_transcriber, "unavailable_reason", lambda: None)
         reason = unavailable_reason()
@@ -157,6 +168,12 @@ class VideoAnalyzer:
                     output_dir=output_dir / "transcript",
                     language=language,
                 )
+                if cues:
+                    return cues, self._transcription_info(
+                        setup_transcriber,
+                        default_source="whisper.cpp",
+                        language=language,
+                    )
             except (CommandError, FileNotFoundError, OSError) as exc:
                 warnings.append(f"自动准备 whisper.cpp 失败: {exc}")
                 cues = []
@@ -170,15 +187,38 @@ class VideoAnalyzer:
                     output_dir=output_dir / "transcript",
                     language=language,
                 )
+                if cues:
+                    return cues, self._transcription_info(
+                        self.whisper_cpp_transcriber,
+                        default_source="whisper.cpp",
+                        language=language,
+                    )
             except (CommandError, FileNotFoundError, OSError) as exc:
                 warnings.append(f"whisper.cpp 转写失败: {exc}")
                 cues = []
 
         if not cues:
             warnings.append("没有可用字幕，且本机未检测到可用 Whisper 转写结果")
-        return cues
+        return cues, None
 
     def _download_attempts_for_report(self, source: Source) -> list[DownloadAttempt]:
         if source.kind == "file":
             return []
         return list(getattr(self.downloader, "download_attempts", []))
+
+    def _transcription_info(
+        self,
+        transcriber: object,
+        default_source: str,
+        language: str | None,
+    ) -> TranscriptionInfo:
+        info = getattr(transcriber, "last_info", None)
+        if isinstance(info, TranscriptionInfo):
+            return info
+        return TranscriptionInfo(
+            source=default_source,
+            model=None,
+            language=language,
+            prompt_used=bool(getattr(transcriber, "prompt", None)),
+            transcript_files=[],
+        )

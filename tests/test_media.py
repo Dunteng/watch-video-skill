@@ -6,14 +6,18 @@ from watchvideo.media import FfmpegClient
 
 
 class RecordingFfmpegClient(FfmpegClient):
-    def __init__(self):
+    def __init__(self, identical_ppm=False):
         super().__init__()
+        self.identical_ppm = identical_ppm
         self.ppm_timestamps = []
         self.saved_frames = []
 
     def extract_ppm(self, video_path, timestamp_seconds):
         self.ppm_timestamps.append(timestamp_seconds)
-        return b"P6\n2 1\n255\n" + bytes([0, 0, 0, 255, 255, 255])
+        if self.identical_ppm:
+            return b"P6\n2 1\n255\n" + bytes([0, 0, 0, 255, 255, 255])
+        value = min(255, int(timestamp_seconds * 5))
+        return b"P6\n2 1\n255\n" + bytes([0, 0, 0, value, value, value])
 
     def extract_frame(self, video_path, timestamp_seconds, output_path):
         self.saved_frames.append((timestamp_seconds, output_path))
@@ -38,6 +42,21 @@ class MediaTests(unittest.TestCase):
         self.assertEqual(len(client.ppm_timestamps), 6)
         self.assertEqual(frames[0].path.name, "frame_0001.jpg")
         self.assertEqual(frames[1].path.name, "frame_0002.jpg")
+
+    def test_extract_keyframes_deduplicates_similar_frames(self):
+        client = RecordingFfmpegClient(identical_ppm=True)
+
+        with TemporaryDirectory() as tmp:
+            frames = client.extract_keyframes(
+                video_path=Path("video.mp4"),
+                output_dir=Path(tmp) / "keyframes",
+                duration_seconds=30.0,
+                interval_seconds=10.0,
+            )
+
+        self.assertEqual(len(frames), 1)
+        self.assertEqual(len(client.saved_frames), 1)
+        self.assertEqual(frames[0].path.name, "frame_0001.jpg")
 
 
 if __name__ == "__main__":

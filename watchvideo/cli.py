@@ -57,7 +57,11 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("--whisper-cpp-bin", default=None, help="whisper.cpp 的 whisper-cli 路径")
     analyze.add_argument("--whisper-model", default=None, help="whisper.cpp 模型路径")
     analyze.add_argument("--whisper-prompt", default=None, help="传给 whisper.cpp 的提示词")
-    analyze.add_argument("--cookies-from-browser", default="chrome", help="yt-dlp 需要 cookies 时读取的浏览器，例如 chrome")
+    analyze.add_argument(
+        "--cookies-from-browser",
+        default="chrome",
+        help="yt-dlp 需要 cookies 时读取的浏览器，例如 chrome、firefox 或 auto",
+    )
     analyze.add_argument(
         "--no-browser-cookies",
         dest="cookies_from_browser",
