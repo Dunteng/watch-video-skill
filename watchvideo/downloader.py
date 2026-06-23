@@ -53,10 +53,12 @@ class YtDlpClient:
         runner: CommandRunner | None = None,
         executable: str = "yt-dlp",
         page_client: SharePageClient | None = None,
+        cookies_from_browser: str | None = "chrome",
     ):
         self.runner = runner or CommandRunner()
         self.executable = executable
         self.page_client = page_client or SharePageClient()
+        self.cookies_from_browser = cookies_from_browser
 
     def fetch_subtitles(
         self,
@@ -93,22 +95,26 @@ class YtDlpClient:
             format_selector = f"bv*[height<={max_height}]+ba/b[height<={max_height}]/b"
 
         try:
-            self.runner.run(
-                [
-                    self.executable,
-                    "-f",
-                    format_selector,
-                    "--merge-output-format",
-                    "mp4",
-                    "-P",
-                    str(output_dir),
-                    "-o",
-                    "%(title).200B.%(ext)s",
-                    url,
-                ]
-            )
+            self._run_yt_dlp_video(url, output_dir, format_selector)
         except (CommandError, FileNotFoundError, OSError) as exc:
-            return self._fetch_remote_from_share_page(url, output_dir, original_error=exc)
+            original_error = exc
+            if self.cookies_from_browser and _is_cookie_error(exc):
+                try:
+                    self._run_yt_dlp_video(
+                        url,
+                        output_dir,
+                        format_selector,
+                        cookies_from_browser=self.cookies_from_browser,
+                    )
+                except (CommandError, FileNotFoundError, OSError) as cookie_exc:
+                    original_error = cookie_exc
+                    return self._fetch_remote_from_share_page(
+                        url,
+                        output_dir,
+                        original_error=original_error,
+                    )
+            else:
+                return self._fetch_remote_from_share_page(url, output_dir, original_error=original_error)
 
         after = _media_files(output_dir)
         new_files = sorted(after - before, key=lambda path: path.stat().st_mtime, reverse=True)
@@ -117,8 +123,31 @@ class YtDlpClient:
             raise FileNotFoundError("yt-dlp 执行结束，但没有找到下载后的视频文件")
         return candidates[0]
 
+    def _run_yt_dlp_video(
+        self,
+        url: str,
+        output_dir: Path,
+        format_selector: str,
+        cookies_from_browser: str | None = None,
+    ) -> None:
+        command = [
+            self.executable,
+            "-f",
+            format_selector,
+            "--merge-output-format",
+            "mp4",
+            "-P",
+            str(output_dir),
+            "-o",
+            "%(title).200B.%(ext)s",
+            url,
+        ]
+        if cookies_from_browser:
+            command[1:1] = ["--cookies-from-browser", cookies_from_browser]
+        self.runner.run(command)
+
     def _fetch_remote_from_share_page(self, url: str, output_dir: Path, original_error: Exception) -> Path:
-        # 函数职责：只尝试公开分享页里的直链，不读取浏览器 cookies 或登录态。
+        # 函数职责：只尝试公开分享页里的直链；浏览器 cookies 由 yt-dlp 路径读取。
         try:
             page_html = self.page_client.fetch_text(url)
             play_urls = extract_play_addr_urls(page_html)
@@ -132,7 +161,7 @@ class YtDlpClient:
         except (FileNotFoundError, OSError, ValueError) as exc:
             raise FileNotFoundError(
                 "视频下载失败：yt-dlp 下载失败，分享页/SSR play_addr 兜底也失败。"
-                "需要先征得用户确认后使用浏览器 cookies，或请用户提供本地视频文件。"
+                "已在需要时尝试直接读取浏览器 cookies；请提供本地视频文件或可访问直链。"
                 f" yt-dlp: {original_error}; play_addr: {exc}"
             ) from exc
 
@@ -182,4 +211,20 @@ def _looks_like_video_url(url: str) -> bool:
         or "bytevideo" in lower
         or "/video/tos/" in lower
         or "playwm" in lower
+    )
+
+
+def _is_cookie_error(error: Exception) -> bool:
+    message = str(error).lower()
+    return any(
+        marker in message
+        for marker in (
+            "fresh cookies",
+            "cookies",
+            "sign in",
+            "login",
+            "not a bot",
+            "authentication",
+            "authenticated",
+        )
     )

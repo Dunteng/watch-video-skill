@@ -51,6 +51,17 @@ class CliTests(unittest.TestCase):
         self.assertFalse(args.auto_transcribe_setup)
         self.assertEqual(args.tools_dir, ".custom-tools")
 
+    def test_analyze_uses_chrome_cookies_by_default_and_can_disable_them(self):
+        default_args = build_parser().parse_args(["analyze", "video.mp4"])
+        disabled_args = build_parser().parse_args(["analyze", "video.mp4", "--no-browser-cookies"])
+        firefox_args = build_parser().parse_args(
+            ["analyze", "video.mp4", "--cookies-from-browser", "firefox"]
+        )
+
+        self.assertEqual(default_args.cookies_from_browser, "chrome")
+        self.assertIsNone(disabled_args.cookies_from_browser)
+        self.assertEqual(firefox_args.cookies_from_browser, "firefox")
+
     def test_max_keyframes_must_be_positive(self):
         with redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit):

@@ -7,6 +7,7 @@ import sys
 
 from .analyzer import VideoAnalyzer
 from .commands import check_tool
+from .downloader import YtDlpClient
 from .ocr import TesseractOcr
 from .processes import render_process_report, scan_processes
 from .reporting import write_json_report, write_markdown_report
@@ -56,6 +57,14 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument("--whisper-cpp-bin", default=None, help="whisper.cpp 的 whisper-cli 路径")
     analyze.add_argument("--whisper-model", default=None, help="whisper.cpp 模型路径")
     analyze.add_argument("--whisper-prompt", default=None, help="传给 whisper.cpp 的提示词")
+    analyze.add_argument("--cookies-from-browser", default="chrome", help="yt-dlp 需要 cookies 时读取的浏览器，例如 chrome")
+    analyze.add_argument(
+        "--no-browser-cookies",
+        dest="cookies_from_browser",
+        action="store_const",
+        const=None,
+        help="yt-dlp 下载失败时不读取浏览器 cookies",
+    )
     analyze.add_argument("--tools-dir", default=None, help="自动准备 whisper.cpp 时使用的工具目录")
     analyze.add_argument(
         "--auto-transcribe-setup",
@@ -101,6 +110,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "analyze":
         output_dir = Path(args.output)
         report = VideoAnalyzer(
+            downloader=YtDlpClient(cookies_from_browser=args.cookies_from_browser),
             whisper_cpp_transcriber=WhisperCppTranscriber(
                 whisper_cpp_bin=args.whisper_cpp_bin,
                 model_path=args.whisper_model,

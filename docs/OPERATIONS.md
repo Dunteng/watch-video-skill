@@ -18,7 +18,7 @@ python3 -m watchvideo doctor
 python3 -m watchvideo analyze "https://example.com/video" -o analysis/demo
 ```
 
-远程视频取证顺序是固定的：先 `yt-dlp`，失败后解析公开分享页/SSR 里的 `play_addr`，再失败才要求用户确认浏览器 cookies、提供本地视频或可访问直链。**不要用标题、简介、搜索结果或同主题资料替代视频证据。**
+远程视频取证顺序是固定的：先普通 `yt-dlp`，遇到 cookies/login/bot 拦截就用 `--cookies-from-browser chrome` 直接读取已有 Chrome cookies 重试，再失败后解析公开分享页/SSR 里的 `play_addr`，最后才要求用户提供本地视频或可访问直链。**不要打开 Chrome 页面，也不要用标题、简介、搜索结果或同主题资料替代视频证据。**
 
 分析本地文件：
 

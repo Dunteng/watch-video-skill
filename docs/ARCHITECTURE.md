@@ -25,7 +25,7 @@ source
   编排层。负责决定先下载字幕、再下载视频、再加载字幕或转写、必要时准备 `whisper.cpp`、最后抽关键帧。这里不直接写下载、转写或抽帧细节。
 
 - `watchvideo/downloader.py`
-  下载适配层。优先使用 `yt-dlp` 下载字幕和视频；视频下载失败时，会尝试解析公开分享页/SSR 里的 `play_addr` 直链。这里不读取浏览器 cookies。
+  下载适配层。优先使用 `yt-dlp` 下载字幕和视频；遇到 cookies/login/bot 拦截时用 `--cookies-from-browser chrome` 重试；仍失败时解析公开分享页/SSR 里的 `play_addr` 直链。这里不打开浏览器 UI。
 
 - `watchvideo/media.py`
   `ffmpeg` / `ffprobe` 适配层。负责读取视频元信息、抽候选帧、保存代表帧。

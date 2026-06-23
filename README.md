@@ -30,7 +30,7 @@
 - 视频剪辑、压缩、转码、发布；
 - 完整场景检测；
 - 自动结束进程。
-- 未经确认读取浏览器 cookies 或登录态。
+- 打开 Chrome 页面或操作浏览器 UI。
 
 ## 安装为 Codex Skill
 
@@ -109,7 +109,7 @@ python3 -m watchvideo doctor
 
 Agent 会按 skill 流程运行 CLI、读取证据文件、输出总结，并在已有 `report.md` 时把最终总结写回 `## 视频内容总结`。
 
-**不要只凭视频 URL、标题、简介或搜索结果总结。** 这个 skill 要求先生成或读取分析产物，再基于 MP4、字幕/转写和关键帧证据下结论。拿不到证据时应说明下载阻塞，并要求用户确认 cookies、提供本地视频或可访问直链。
+**不要只凭视频 URL、标题、简介或搜索结果总结。** 这个 skill 要求先生成或读取分析产物，再基于 MP4、字幕/转写和关键帧证据下结论。遇到 cookies 拦截时 CLI 会直接用 Chrome cookies 重试；拿不到证据时应说明下载阻塞，并要求用户提供本地视频或可访问直链。
 
 ## 手动运行 CLI
 
@@ -140,6 +140,14 @@ python3 -m watchvideo analyze "https://example.com/video" \
   --max-keyframes 80 \
   --sub-lang "zh.*" \
   --sub-lang "en.*" \
+  -o "$TASK_WORKDIR/analysis/demo"
+```
+
+默认遇到 cookies/login/bot 拦截时，会用 `yt-dlp --cookies-from-browser chrome` 重试，不会打开 Chrome 页面。需要关闭时加：
+
+```bash
+python3 -m watchvideo analyze "https://example.com/video" \
+  --no-browser-cookies \
   -o "$TASK_WORKDIR/analysis/demo"
 ```
 

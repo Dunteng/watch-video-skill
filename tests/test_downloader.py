@@ -17,6 +17,26 @@ class FailingRunner:
         raise CommandError(result)
 
 
+class CookieRetryRunner:
+    def __init__(self):
+        self.commands = []
+
+    def run(self, args, cwd=None, check=True, text=True):
+        self.commands.append(list(args))
+        if "--cookies-from-browser" not in args:
+            result = CommandResult(
+                args=list(args),
+                returncode=1,
+                stdout="",
+                stderr="Sign in to confirm you are not a bot. Use fresh cookies.",
+            )
+            raise CommandError(result)
+        output_dir = Path(args[args.index("-P") + 1])
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "cookie-video.mp4").write_bytes(b"mp4")
+        return CommandResult(args=list(args), returncode=0, stdout="", stderr="")
+
+
 class FakeSharePageClient:
     def __init__(self, html="", video_bytes=b"video"):
         self.html = html
@@ -63,6 +83,26 @@ class DownloaderTests(unittest.TestCase):
 
         self.assertEqual(page_client.fetched_pages, ["https://www.douyin.com/share/video/123"])
         self.assertEqual(page_client.downloaded_urls, ["https://v3-web.douyinvod.com/fallback.mp4"])
+
+    def test_fetch_remote_retries_with_chrome_cookies_before_share_page_fallback(self):
+        runner = CookieRetryRunner()
+        page_client = FakeSharePageClient(html="<html>should not fetch</html>")
+
+        with TemporaryDirectory() as tmp:
+            video_path = YtDlpClient(
+                runner=runner,
+                page_client=page_client,
+            ).fetch_remote(
+                "https://www.douyin.com/share/video/123",
+                output_dir=Path(tmp),
+            )
+
+            self.assertEqual(video_path.name, "cookie-video.mp4")
+
+        self.assertNotIn("--cookies-from-browser", runner.commands[0])
+        self.assertIn("--cookies-from-browser", runner.commands[1])
+        self.assertIn("chrome", runner.commands[1])
+        self.assertEqual(page_client.fetched_pages, [])
 
     def test_fetch_remote_failure_mentions_cookies_or_local_file(self):
         page_client = FakeSharePageClient(html="<html>no video</html>")

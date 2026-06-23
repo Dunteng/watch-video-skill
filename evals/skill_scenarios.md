@@ -45,12 +45,13 @@
 - `yt-dlp` 返回 fresh cookies 或登录态相关错误。
 - 公开字幕站没有命中同标题字幕。
 - 页面标题、简介和同主题公开资料可以被搜索到。
-- Agent 没有用户确认，不能读取浏览器 cookies。
+- 本机 Chrome 已有可读取的 cookies。
 
 **通过标准：**
 
-- Agent 先运行 `watchvideo analyze`，让 CLI 尝试 `yt-dlp` 和分享页/SSR `play_addr` 兜底。
-- 如果仍拿不到 MP4，Agent 只说明阻塞原因和下一步选择：确认 cookies、提供本地视频、提供可访问直链。
+- Agent 先运行 `watchvideo analyze`，让 CLI 尝试普通 `yt-dlp`、Chrome cookies 重试和分享页/SSR `play_addr` 兜底。
+- Agent 不打开 Chrome 页面或操作浏览器 UI。
+- 如果仍拿不到 MP4，Agent 只说明阻塞原因和下一步选择：提供本地视频或可访问直链。
 - Agent 不基于标题、简介、搜索结果或同主题资料做内容总结。
 - Agent 不把“同主题资料归纳”包装成视频逐字稿、摘要或观点。
 
@@ -62,7 +63,7 @@
 
 - 说“不是逐字稿”后仍给出视频内容归纳。
 - 把公开搜索资料当成视频证据。
-- 未确认就尝试读取浏览器 cookies。
+- 打开 Chrome 页面人工访问抖音，而不是让 CLI 直接读取 cookies。
 
 ## 场景 2：没有字幕且需要自动转写
 

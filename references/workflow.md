@@ -61,9 +61,10 @@ python3 -m watchvideo analyze "https://example.com/video" -o "$TASK_WORKDIR/anal
 
 For remote URLs, evidence acquisition order is mandatory:
 
-1. Run `watchvideo analyze`, which tries `yt-dlp`.
-2. If `yt-dlp` fails, the CLI tries public share-page/SSR `play_addr` URLs.
-3. If both fail, stop and ask for one of: user-confirmed browser cookies, a local video file, or an accessible direct video URL.
+1. Run `watchvideo analyze`, which tries plain `yt-dlp`.
+2. On cookies/login/bot errors, the CLI retries `yt-dlp --cookies-from-browser chrome` by default. Do not open Chrome UI.
+3. If `yt-dlp` still fails, the CLI tries public share-page/SSR `play_addr` URLs.
+4. If all attempts fail, stop and ask for a local video file or an accessible direct video URL.
 
 Do not replace missing video evidence with the page title, description, search results, public subtitles for a similar title, or same-topic articles. Those sources can explain the blocker or help craft a prompt after evidence exists; they are not video evidence.
 
