@@ -156,6 +156,40 @@ class SummarizerTests(unittest.TestCase):
         self.assertIn("## 关键帧时间戳", prompt)
         self.assertIn("00:00:12", prompt)
 
+    def test_render_summary_prompt_prefers_technical_interview_report_shape(self):
+        report = {
+            "source": {"kind": "file", "value": "interview.mp4"},
+            "video_path": "interview.mp4",
+            "media": {},
+            "transcript_cues": [],
+            "transcript_text": "讲 Agent 记忆系统的面试回答方法。",
+        }
+
+        prompt = render_summary_prompt(report)
+
+        expected_sections = [
+            "### 一句话总结",
+            "### 视频主线",
+            "### 核心概念拆解",
+            "### 常见误区",
+            "### 可执行方法",
+            "### 面试回答模板",
+            "### 转写校正说明",
+        ]
+        previous_index = -1
+        for section in expected_sections:
+            current_index = prompt.find(section)
+            self.assertGreater(current_index, previous_index)
+            previous_index = current_index
+
+        self.assertIn("技术类、面试类、教程类或方法论类视频默认使用这个结构", prompt)
+        self.assertIn("缺少视频证据时保留标题并写“视频未明确提到”", prompt)
+        self.assertIn("概念 / 定义 / 边界 / 例子 / 为什么重要 / 视频证据", prompt)
+        self.assertIn("误区 / 为什么错 / 正确说法 / 证据", prompt)
+        self.assertIn("前提 / 步骤 / 检查清单 / 适用场景 / 不适用场景", prompt)
+        self.assertIn("30 秒版 / 2 分钟版 / 追问应对 / 不推荐回答", prompt)
+        self.assertIn("可疑原文 / 建议校正 / 置信度 / 校正依据", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

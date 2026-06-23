@@ -30,7 +30,19 @@ Use `转写信息` to judge transcript reliability: system whisper versus whispe
 
 ## Summary Output Standard
 
-**Final summaries must stay evidence-grounded and easy to scan.** For a normal video summary, produce:
+**Final summaries must stay evidence-grounded and easy to scan.**
+
+For technical, interview, tutorial, or methodology videos, use this default report shape:
+
+- 一句话总结：state the claim, target scenario, and core conclusion;
+- 视频主线：3-6 timestamped nodes showing problem, view, evidence, and conclusion;
+- 核心概念拆解：use `概念 / 定义 / 边界 / 例子 / 为什么重要 / 视频证据`;
+- 常见误区：use `误区 / 为什么错 / 正确说法 / 证据`;
+- 可执行方法：use `前提 / 步骤 / 检查清单 / 适用场景 / 不适用场景`;
+- 面试回答模板：include `30 秒版 / 2 分钟版 / 追问应对 / 不推荐回答`;
+- 转写校正说明：use `可疑原文 / 建议校正 / 置信度 / 校正依据`.
+
+For other videos, produce:
 
 - one-sentence summary;
 - timeline summary with timestamps where possible;
@@ -39,6 +51,8 @@ Use `转写信息` to judge transcript reliability: system whisper versus whispe
 - evidence notes for major claims, using transcript timestamps, OCR text, or keyframe context;
 - suspicious transcription/OCR items that need confirmation;
 - practical examples or answer templates when the video is interview/tutorial content.
+
+In the technical/interview shape, keep every section but write `视频未明确提到` when the evidence does not support that section. The interview template must not become generic advice detached from the video.
 
 Do not treat title, description, search results, or same-topic material as video evidence. If transcript, OCR, or keyframes are weak, state the limit in the summary instead of filling gaps.
 
