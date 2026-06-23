@@ -43,6 +43,8 @@ Required tools: `python3`, `yt-dlp`, `ffmpeg`, `ffprobe`.
 
 Optional tools: `whisper`, `tesseract`, `whisper.cpp` `whisper-cli` and model.
 
+`doctor` prints `REQUIRED_OK` or `REQUIRED_MISSING` for required tools, and `OPTIONAL_OK` or `OPTIONAL_MISSING` for optional tools. Stop on `REQUIRED_MISSING`. Continue with evidence limits on `OPTIONAL_MISSING`.
+
 ## 4. Analyze Video
 
 Local file:

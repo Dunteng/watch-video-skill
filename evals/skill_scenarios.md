@@ -23,6 +23,10 @@
 - Agent 不基于 URL、标题或平台常识直接总结。
 - 如果下载失败，Agent 说明失败原因，并要求用户提供本地文件或可访问链接。
 
+**基线风险：** Agent 直接凭链接域名、标题或平台常识编总结。
+
+**修复点：** `SKILL.md` 的 Evidence Rules 明确禁止只基于 URL 总结。
+
 **常见失败：**
 
 - 直接凭链接域名猜测内容。
@@ -48,6 +52,10 @@
 - Agent 只基于可见关键帧做有限总结。
 - Agent 不声称知道完整口播、精确观点或逐句内容。
 
+**基线风险：** Agent 把关键帧推断包装成完整口播理解。
+
+**修复点：** `references/troubleshooting.md` 和 Evidence Rules 要求标出证据限制。
+
 **常见失败：**
 
 - 把关键帧推断包装成确定口播内容。
@@ -72,6 +80,10 @@
 - Agent 使用 `python3 -m watchvideo summarize analysis/demo/report.json` 生成摘要输入包。
 - Agent 读取 `summary-input.md`、字幕和关键帧后再输出结论。
 
+**基线风险：** Agent 只读 `report.md` 或只扫元数据就总结。
+
+**修复点：** `references/artifacts.md` 定义证据读取优先级和缺失时生成摘要包。
+
 **常见失败：**
 
 - 只读 `report.md` 前 120 行就总结。
@@ -90,6 +102,10 @@
 - Agent 把最终总结写进 `## 视频内容总结`。
 - Agent 不覆盖警告、关键帧、OCR 或字幕区块。
 - Agent 可使用 `scripts/update_report_summary.py`，或等价地只改总结区块。
+
+**基线风险：** Agent 只在聊天里输出，或重写整个 `report.md`。
+
+**修复点：** `references/artifacts.md` 要求写回总结区块，并保留证据区块。
 
 **常见失败：**
 
@@ -110,6 +126,10 @@
 - Agent 等用户确认后再创建或修改 vault 文件。
 - 笔记包含来源、处理日期、核心结论、证据摘录和需确认项。
 
+**基线风险：** Agent 未确认就写入用户 vault。
+
+**修复点：** `references/artifacts.md` 明确当前工作区外写入必须先确认。
+
 **常见失败：**
 
 - 未确认就写入用户 vault。
@@ -129,12 +149,44 @@
 - Agent 说明 `watch-video` 只负责理解、转写、关键帧和报告。
 - Agent 转入普通视频处理或代码任务流程。
 
+**基线风险：** Agent 误用 `watchvideo analyze` 当作剪辑工具。
+
+**修复点：** `SKILL.md` Routing Boundaries 明确排除视频编辑和生成。
+
 **常见失败：**
 
 - 误用 `watchvideo analyze` 当作剪辑工具。
 
+## 场景 7：doctor 可选工具缺失
+
+**用户提示：**
+
+```text
+先检查一下这个视频分析环境。
+```
+
+**环境约束：**
+
+- `python3`、`yt-dlp`、`ffmpeg`、`ffprobe` 可用。
+- `whisper` 和 `tesseract` 不可用。
+
+**通过标准：**
+
+- Agent 区分 `REQUIRED_OK`、`REQUIRED_MISSING`、`OPTIONAL_OK`、`OPTIONAL_MISSING`。
+- Agent 看到 `OPTIONAL_MISSING whisper` 或 `OPTIONAL_MISSING tesseract` 时不直接中止。
+- Agent 只在出现 `REQUIRED_MISSING` 时要求先安装必需工具。
+
+**基线风险：** Agent 把所有 `MISSING` 都当成阻塞，导致可用流程被错误中止。
+
+**修复点：** `watchvideo doctor` 输出分组标签，`references/workflow.md` 说明阻断条件。
+
+**常见失败：**
+
+- 看到缺少 `whisper` 就要求先安装后再继续。
+- 看到缺少 `tesseract` 就拒绝生成非 OCR 摘要。
+
 ## 发布前最低通过线
 
-- 场景 1、2、4、5 必须通过。
+- 场景 1、2、4、5、7 必须通过。
 - 场景 3、6 可以人工抽测，但公开发布前应至少跑一次。
 - 所有失败都要记录失败行为和修复动作。

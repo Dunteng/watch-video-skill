@@ -4,8 +4,10 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 from watchvideo.cli import build_parser, main
+from watchvideo.models import ToolStatus
 
 
 class CliTests(unittest.TestCase):
@@ -50,6 +52,28 @@ class CliTests(unittest.TestCase):
         self.assertEqual(summarize.output, "summary.md")
         self.assertEqual(summarize.chunk_seconds, 120.0)
         self.assertEqual(processes.command, "processes")
+
+    def test_main_doctor_distinguishes_required_and_optional_tools(self):
+        statuses = {
+            "python3": ToolStatus(name="python3", path="/usr/bin/python3", version="Python 3"),
+            "yt-dlp": ToolStatus(name="yt-dlp", path="/usr/bin/yt-dlp", version="yt-dlp 1"),
+            "ffmpeg": ToolStatus(name="ffmpeg", path=None),
+            "ffprobe": ToolStatus(name="ffprobe", path="/usr/bin/ffprobe"),
+            "whisper": ToolStatus(name="whisper", path=None),
+            "tesseract": ToolStatus(name="tesseract", path="/usr/bin/tesseract"),
+        }
+
+        with patch("watchvideo.cli.check_tool", side_effect=lambda name: statuses[name]):
+            stdout = io.StringIO()
+            with redirect_stdout(stdout):
+                exit_code = main(["doctor"])
+
+        lines = stdout.getvalue().splitlines()
+        self.assertEqual(exit_code, 0)
+        self.assertIn("REQUIRED_OK\tpython3\tPython 3", lines)
+        self.assertIn("REQUIRED_MISSING\tffmpeg\t", lines)
+        self.assertIn("OPTIONAL_MISSING\twhisper\t", lines)
+        self.assertIn("OPTIONAL_OK\ttesseract\t/usr/bin/tesseract", lines)
 
     def test_main_summarize_writes_markdown_prompt(self):
         with TemporaryDirectory() as tmp:

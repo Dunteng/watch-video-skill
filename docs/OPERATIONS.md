@@ -10,6 +10,8 @@
 python3 -m watchvideo doctor
 ```
 
+`REQUIRED_MISSING` 表示需要先安装后再分析；`OPTIONAL_MISSING` 只表示对应能力不可用，例如没有本地转写或 OCR。
+
 分析视频链接：
 
 ```bash

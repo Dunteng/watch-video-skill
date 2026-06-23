@@ -67,6 +67,8 @@ whisper.cpp 模型文件
 python3 -m watchvideo doctor
 ```
 
+`doctor` 会用 `REQUIRED_*` 标记必需工具，用 `OPTIONAL_*` 标记可选工具。只有 `REQUIRED_MISSING` 需要先阻断分析流程。
+
 分析本地视频：
 
 ```bash

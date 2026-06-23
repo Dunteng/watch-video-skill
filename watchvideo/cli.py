@@ -14,6 +14,16 @@ from .summarizer import render_summary_prompt
 from .transcription import WhisperCppTranscriber
 
 
+DOCTOR_TOOLS = (
+    ("python3", True),
+    ("yt-dlp", True),
+    ("ffmpeg", True),
+    ("ffprobe", True),
+    ("whisper", False),
+    ("tesseract", False),
+)
+
+
 def _positive_int(value: str) -> int:
     parsed = int(value)
     if parsed <= 0:
@@ -63,11 +73,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "doctor":
-        for tool in ["python3", "yt-dlp", "ffmpeg", "ffprobe", "whisper", "tesseract"]:
+        for tool, required in DOCTOR_TOOLS:
             status = check_tool(tool)
-            marker = "OK" if status.available else "MISSING"
+            group = "REQUIRED" if required else "OPTIONAL"
+            state = "OK" if status.available else "MISSING"
             detail = status.version or status.path or ""
-            print(f"{marker}\t{tool}\t{detail}")
+            print(f"{group}_{state}\t{tool}\t{detail}")
         return 0
 
     if args.command == "analyze":
