@@ -20,6 +20,13 @@ def render_summary_prompt(report: dict[str, Any], chunk_seconds: float = 300.0) 
         f"- 时长: `{_format_duration(_media_value(report, 'duration_seconds'))}`",
         f"- 分辨率: `{_format_resolution(report)}`",
         "",
+        "## 总结写作要求",
+        "",
+        "- 只基于本文件、report.md、字幕/转写、OCR 与关键帧写结论；不要用标题、简介或搜索结果补内容。",
+        "- 输出结构：一句话结论、时间线摘要、关键观点、可执行要点、需确认项。",
+        "- 每个关键结论尽量带时间戳或画面/OCR依据；没有证据就写不确定。",
+        "- 转写噪声、专名、数字、代码或屏幕文字要用关键帧/OCR校正。",
+        "",
         "## 警告",
         "",
     ]
@@ -35,8 +42,18 @@ def render_summary_prompt(report: dict[str, Any], chunk_seconds: float = 300.0) 
         lines.extend(["", "## 下载诊断", ""])
         lines.extend(download_attempts)
 
+    transcription_info = _render_transcription_info(report)
+    if transcription_info:
+        lines.extend(["", "## 转写信息", ""])
+        lines.extend(transcription_info)
+
     lines.extend(["", "## 关键帧", ""])
     lines.extend(_render_keyframe_hint(report))
+
+    keyframe_timestamps = _render_keyframe_timestamps(report)
+    if keyframe_timestamps:
+        lines.extend(["", "## 关键帧时间戳", ""])
+        lines.extend(keyframe_timestamps)
 
     ocr_lines = _render_ocr_results(report)
     if ocr_lines:
@@ -96,6 +113,47 @@ def _render_keyframe_hint(report: dict[str, Any]) -> list[str]:
     return [
         "- 关键帧目录: 未在 report.json 中提供；如已生成，通常位于分析目录的 `keyframes/`。",
     ]
+
+
+def _render_transcription_info(report: dict[str, Any]) -> list[str]:
+    info = report.get("transcription_info")
+    if not isinstance(info, dict):
+        return []
+
+    transcript_files = [
+        str(path).strip()
+        for path in _list_value(info.get("transcript_files"))
+        if str(path).strip()
+    ]
+    transcript_file_text = ", ".join(f"`{path}`" for path in transcript_files) or "`none`"
+    return [
+        f"- 来源: `{str(info.get('source') or 'unknown')}`",
+        f"- 模型: `{str(info.get('model') or 'unknown')}`",
+        f"- 语言参数: `{str(info.get('language') or 'auto')}`",
+        f"- 使用 prompt: `{'yes' if info.get('prompt_used') else 'no'}`",
+        f"- 逐字稿文件: {transcript_file_text}",
+    ]
+
+
+def _render_keyframe_timestamps(report: dict[str, Any], max_items: int = 40) -> list[str]:
+    frames: list[dict[str, Any]] = []
+    for frame in _list_value(report.get("keyframes")):
+        if isinstance(frame, dict):
+            frames.append(frame)
+    if not frames:
+        return []
+
+    lines: list[str] = []
+    for frame in sorted(frames, key=lambda item: _number_value(item.get("timestamp_seconds")))[
+        :max_items
+    ]:
+        timestamp = _format_duration(_number_value(frame.get("timestamp_seconds")))
+        path = str(frame.get("path") or "").strip()
+        name = PurePath(path).name if path else "unknown"
+        lines.append(f"- `[{timestamp}]` {name}")
+    if len(frames) > max_items:
+        lines.append(f"- 仅展示前 `{max_items}` 张关键帧时间戳；完整列表见 `report.json`。")
+    return lines
 
 
 def _render_ocr_results(report: dict[str, Any]) -> list[str]:

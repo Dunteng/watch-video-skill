@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import TypeVar
 
 from .models import AnalysisReport, DownloadAttempt
+
+T = TypeVar("T")
 
 
 def write_json_report(report: AnalysisReport, path: Path) -> None:
@@ -53,6 +56,9 @@ def render_markdown_report(report: AnalysisReport) -> str:
         f"- 关键帧数: `{len(report.keyframes)}`",
     ]
 
+    lines.extend(["", "## 证据质量", ""])
+    lines.extend(_render_evidence_quality(report))
+
     if report.warnings:
         lines.extend(["", "## 警告", ""])
         lines.extend(f"- {warning}" for warning in report.warnings)
@@ -82,6 +88,9 @@ def render_markdown_report(report: AnalysisReport) -> str:
     if report.summary_text.strip():
         lines.extend(["", "## 视频内容总结", ""])
         lines.append(report.summary_text.strip())
+
+    lines.extend(["", "## 时间线速览", ""])
+    lines.extend(_render_timeline_preview(report))
 
     lines.extend(["", "## 关键帧", ""])
     if report.keyframes:
@@ -137,6 +146,68 @@ def _download_attempts_to_dict(download_attempts: list[DownloadAttempt]) -> list
         }
         for attempt in download_attempts
     ]
+
+
+def _render_evidence_quality(report: AnalysisReport) -> list[str]:
+    # 函数职责和边界：只描述证据覆盖面，不根据证据推断视频内容。
+    if report.transcript_cues:
+        transcript_status = f"带时间戳（{len(report.transcript_cues)} 条）"
+    elif report.transcript_text.strip():
+        transcript_status = "仅纯文本"
+    else:
+        transcript_status = "缺失"
+
+    lines = [
+        f"- 字幕/转写: `{transcript_status}`",
+        f"- 画面证据: `{len(report.keyframes)} 张关键帧`",
+        f"- OCR 文本: `{len(report.ocr_results)} 条`",
+        "- 总结边界: 只能基于字幕/转写、OCR 和关键帧；没有证据的内容必须标为不确定。",
+    ]
+    if report.warnings:
+        lines.append(f"- 风险提示: 存在 `{len(report.warnings)}` 条警告，摘要必须体现限制。")
+    return lines
+
+
+def _render_timeline_preview(report: AnalysisReport, max_items: int = 8) -> list[str]:
+    cues = [
+        cue
+        for cue in sorted(report.transcript_cues, key=lambda item: item.start_seconds)
+        if cue.text.strip()
+    ]
+    if not cues:
+        return ["- 未提取到带时间戳的字幕/转写，摘要应降低确定性。"]
+
+    lines: list[str] = []
+    for cue in _sample_items(cues, max_items=max_items):
+        text = _short_text(cue.text)
+        lines.append(
+            f"- `[{_format_duration(cue.start_seconds)} - {_format_duration(cue.end_seconds)}]` {text}"
+        )
+    if len(cues) > max_items:
+        lines.append(f"- 仅展示 `{max_items}` 条代表性时间线索；完整字幕见下方。")
+    return lines
+
+
+def _sample_items(items: list[T], max_items: int) -> list[T]:
+    if max_items <= 0 or len(items) <= max_items:
+        return items
+    if max_items == 1:
+        return [items[0]]
+
+    last_index = len(items) - 1
+    indexes: list[int] = []
+    for position in range(max_items):
+        index = round(position * last_index / (max_items - 1))
+        if index not in indexes:
+            indexes.append(index)
+    return [items[index] for index in indexes]
+
+
+def _short_text(text: str, limit: int = 140) -> str:
+    clean = " ".join(text.split())
+    if len(clean) <= limit:
+        return clean
+    return clean[: limit - 1].rstrip() + "..."
 
 
 def _format_duration(seconds: float | None) -> str:

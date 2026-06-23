@@ -16,8 +16,8 @@
 - 解析 `.srt` / `.vtt` 字幕；
 - 没有字幕时调用系统 `whisper`，必要时自动准备 `.tools/whisper.cpp` 转写；
 - 抽取关键帧，并跳过高度相似的重复画面；
-- 生成 `report.json` 和 `report.md`；
-- 生成面向 Agent 阅读的 `summary-input.md`；
+- 生成带证据质量、时间线速览和转写信息的 `report.json` / `report.md`；
+- 生成面向 Agent 阅读的 `summary-input.md`，包含总结写作要求、转写信息、关键帧时间戳和分段字幕；
 - 检查疑似残留的高负载进程。
 
 脚本可以按需处理：
@@ -110,7 +110,7 @@ python3 -m watchvideo doctor
 
 Agent 会按 skill 流程运行 CLI、读取证据文件、输出总结，并在已有 `report.md` 时把最终总结写回 `## 视频内容总结`。
 
-**不要只凭视频 URL、标题、简介或搜索结果总结。** 这个 skill 要求先生成或读取分析产物，再基于 MP4、字幕/转写和关键帧证据下结论。遇到 cookies 拦截时 CLI 会直接用 Chrome cookies 重试；拿不到证据时应说明下载阻塞，并要求用户提供本地视频或可访问直链。
+**不要只凭视频 URL、标题、简介或搜索结果总结。** 这个 skill 要求先生成或读取分析产物，再基于 MP4、字幕/转写、OCR 和关键帧证据下结论。最终总结应优先使用时间戳、关键帧或 OCR 作为依据；证据不足的专名、数字、术语和画面内容要标为需确认。遇到 cookies 拦截时 CLI 会直接用 Chrome cookies 重试；拿不到证据时应说明下载阻塞，并要求用户提供本地视频或可访问直链。
 
 如果分析失败，CLI 会在输出目录写入 `failure.md` 和 `failure.json`。Agent 应读取失败报告里的下载诊断，只说明阻塞原因和下一步需要的证据。
 
@@ -181,8 +181,8 @@ python3 -m watchvideo processes
 一次分析通常会生成：
 
 - `report.json`：结构化报告，适合程序继续处理；
-- `report.md`：人类可读报告，包含元信息、下载诊断、转写信息、字幕文本和可选总结；
-- `summary-input.md`：面向 Agent 的摘要输入包，包含下载诊断和分段字幕；
+- `report.md`：人类可读报告，包含元信息、证据质量、时间线速览、下载诊断、转写信息、字幕文本和可选总结；
+- `summary-input.md`：面向 Agent 的摘要输入包，包含总结写作要求、下载诊断、转写信息、关键帧时间戳和分段字幕；
 - `video/`：网络视频下载结果；
 - `subtitles/`：平台字幕或自动字幕；
 - `transcript/`：本地转写结果；

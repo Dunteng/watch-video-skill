@@ -119,6 +119,43 @@ class SummarizerTests(unittest.TestCase):
         self.assertIn("fresh cookies", prompt)
         self.assertIn("mobile share page play_addr", prompt)
 
+    def test_render_summary_prompt_includes_summary_contract_and_transcription_info(self):
+        report = {
+            "source": {"kind": "file", "value": "video.mp4"},
+            "video_path": "video.mp4",
+            "media": {},
+            "transcription_info": {
+                "source": "whisper.cpp",
+                "model": "base",
+                "language": "zh",
+                "prompt_used": True,
+                "transcript_files": ["analysis/demo/transcript/base.srt"],
+            },
+            "keyframes": [
+                {
+                    "path": "analysis/demo/keyframes/frame_0001.jpg",
+                    "timestamp_seconds": 12.0,
+                    "score": 9.2,
+                }
+            ],
+            "transcript_cues": [],
+            "transcript_text": "转写文本。",
+        }
+
+        prompt = render_summary_prompt(report)
+
+        self.assertIn("## 总结写作要求", prompt)
+        self.assertIn("不要用标题、简介或搜索结果补内容", prompt)
+        self.assertIn("每个关键结论尽量带时间戳", prompt)
+        self.assertIn("## 转写信息", prompt)
+        self.assertIn("来源: `whisper.cpp`", prompt)
+        self.assertIn("模型: `base`", prompt)
+        self.assertIn("语言参数: `zh`", prompt)
+        self.assertIn("使用 prompt: `yes`", prompt)
+        self.assertIn("base.srt", prompt)
+        self.assertIn("## 关键帧时间戳", prompt)
+        self.assertIn("00:00:12", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

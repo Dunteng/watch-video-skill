@@ -5,7 +5,7 @@ Use this reference when an analysis directory already exists or after running `a
 ## Priority Order
 
 1. `report.md`: human-readable report, durable place for the final summary.
-2. `summary-input.md`: model-friendly packet with metadata, warnings, download diagnostics, keyframe directory, OCR, and chunked transcript.
+2. `summary-input.md`: model-friendly packet with metadata, warnings, download diagnostics, transcription info, keyframe timestamps, OCR, and chunked transcript.
 3. `transcript/*.srt` or `transcript/*.txt`: raw transcription with timestamps.
 4. `keyframes/`: visual evidence for slides, code, diagrams, screenshots, and scene changes.
 5. `report.json`: structured source of paths, timestamps, warnings, OCR, and keyframe metadata.
@@ -14,7 +14,7 @@ Use this reference when an analysis directory already exists or after running `a
 
 If `failure.md` exists, read it first. It means no usable MP4, transcript, or keyframes were produced; report the blocker and do not summarize video content.
 
-Start with `report.md` to understand source, duration, resolution, subtitle count, download diagnostics, transcription info, warnings, and whether a summary already exists.
+Start with `report.md` to understand source, duration, resolution, evidence quality, timeline preview, subtitle count, download diagnostics, transcription info, warnings, and whether a summary already exists.
 
 Read `summary-input.md` for chunked transcript. If it is missing, generate it from `report.json` with the `summarize` command.
 
@@ -30,13 +30,17 @@ Use `转写信息` to judge transcript reliability: system whisper versus whispe
 
 ## Summary Output Standard
 
-For a normal video summary, produce:
+**Final summaries must stay evidence-grounded and easy to scan.** For a normal video summary, produce:
 
 - one-sentence summary;
-- structured summary by topic or timeline;
+- timeline summary with timestamps where possible;
+- structured summary by topic;
 - key points and takeaways;
+- evidence notes for major claims, using transcript timestamps, OCR text, or keyframe context;
 - suspicious transcription/OCR items that need confirmation;
 - practical examples or answer templates when the video is interview/tutorial content.
+
+Do not treat title, description, search results, or same-topic material as video evidence. If transcript, OCR, or keyframes are weak, state the limit in the summary instead of filling gaps.
 
 Keep wording in Chinese unless the user asks otherwise.
 

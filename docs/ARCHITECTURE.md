@@ -43,13 +43,13 @@ source
   OCR 入口。当前只在用户传 `--ocr` 时调用 `tesseract`，并只处理已经抽出的关键帧。
 
 - `watchvideo/summarizer.py`
-  摘要输入包生成器。读取 `report.json` 字典，把元信息、警告、下载诊断、关键帧目录和字幕分段整理成 Markdown，不调用 LLM。
+  摘要输入包生成器。读取 `report.json` 字典，把元信息、警告、下载诊断、转写信息、关键帧时间戳、OCR 和字幕分段整理成 Markdown，并写入证据优先的总结要求，不调用 LLM。
 
 - `watchvideo/processes.py`
   进程检查。扫描 `watchvideo`、`yt-dlp`、`ffmpeg`、`whisper-cli` 等相关命令，只报告不清理。
 
 - `watchvideo/reporting.py`
-  报告写出。成功时生成 `report.json` 和 `report.md`；失败时生成 `failure.json` 和 `failure.md`。Markdown 报告面向人阅读，不逐张列出关键帧；关键帧明细保留在 JSON。
+  报告写出。成功时生成 `report.json` 和 `report.md`；失败时生成 `failure.json` 和 `failure.md`。Markdown 报告面向人阅读，包含证据质量和时间线速览，不逐张列出关键帧；关键帧明细保留在 JSON。
 
 - `watchvideo/models.py`
   数据模型。集中定义 source、media、subtitle、keyframe、download attempt、transcription info、report 等结构。

@@ -8,6 +8,7 @@ from watchvideo.models import (
     MediaInfo,
     OcrResult,
     Source,
+    SubtitleCue,
     TranscriptionInfo,
 )
 from watchvideo.reporting import render_markdown_report
@@ -162,6 +163,50 @@ class ReportingTests(unittest.TestCase):
         self.assertIn("语言参数: `zh`", markdown)
         self.assertIn("使用 prompt: `yes`", markdown)
         self.assertIn("base.srt", markdown)
+
+    def test_markdown_report_includes_evidence_quality_and_timeline_preview(self):
+        report = AnalysisReport(
+            source=Source(kind="file", value="video.mp4", path=Path("video.mp4")),
+            work_dir=Path("analysis/demo"),
+            video_path=Path("video.mp4"),
+            media=MediaInfo(
+                path=Path("video.mp4"),
+                duration_seconds=120.0,
+                width=1280,
+                height=720,
+            ),
+            transcript_cues=[
+                SubtitleCue(
+                    start_seconds=2.0,
+                    end_seconds=5.0,
+                    text="开场介绍视频主题。",
+                ),
+                SubtitleCue(
+                    start_seconds=65.0,
+                    end_seconds=70.0,
+                    text="这里给出核心方法和注意事项。",
+                ),
+            ],
+            transcript_text="开场介绍视频主题。\n这里给出核心方法和注意事项。",
+            keyframes=[
+                Keyframe(
+                    path=Path("analysis/demo/keyframes/frame_0001.jpg"),
+                    timestamp_seconds=2.0,
+                    score=7.5,
+                )
+            ],
+        )
+
+        markdown = render_markdown_report(report)
+
+        self.assertIn("## 证据质量", markdown)
+        self.assertIn("字幕/转写: `带时间戳（2 条）`", markdown)
+        self.assertIn("画面证据: `1 张关键帧`", markdown)
+        self.assertIn("只能基于字幕/转写、OCR 和关键帧", markdown)
+        self.assertIn("## 时间线速览", markdown)
+        self.assertIn("[00:00:02 - 00:00:05]", markdown)
+        self.assertIn("开场介绍视频主题。", markdown)
+        self.assertIn("[00:01:05 - 00:01:10]", markdown)
 
 
 if __name__ == "__main__":

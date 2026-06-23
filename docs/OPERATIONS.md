@@ -135,15 +135,16 @@ analysis/demo/keyframes/
 并要求它输出：
 
 - 一句话总结；
-- 分段摘要；
+- 带时间戳的分段摘要；
 - 关键观点；
+- 主要结论的证据依据；
 - 需要人工确认的可疑转写。
 
-总结完成后，把最终内容写回 `report.md` 的 `视频内容总结` 区块。报告里不要逐张列出关键帧路径或 score；只保留关键帧数量和目录。
+总结完成后，把最终内容写回 `report.md` 的 `视频内容总结` 区块。**不要用标题、简介、搜索结果或同主题材料补内容。** 报告里不要逐张列出关键帧路径或 score；只保留关键帧数量和目录。
 
 ## 生成摘要输入包
 
-`summarize` 会把 `report.json` 里的元信息、warning、下载诊断、关键帧目录和字幕 cue 按时间段整理成 Markdown。**它不调用任何 LLM**。
+`summarize` 会把 `report.json` 里的元信息、warning、下载诊断、转写信息、关键帧时间戳和字幕 cue 按时间段整理成 Markdown，并加入最终总结的写作要求。**它不调用任何 LLM**。
 
 ```bash
 python3 -m watchvideo summarize analysis/demo/report.json \
