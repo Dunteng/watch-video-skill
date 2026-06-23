@@ -35,6 +35,12 @@ def render_markdown_report(report: AnalysisReport) -> str:
         lines.extend(["", "## 警告", ""])
         lines.extend(f"- {warning}" for warning in report.warnings)
 
+    if report.download_attempts:
+        lines.extend(["", "## 下载诊断", ""])
+        for attempt in report.download_attempts:
+            detail = f": {attempt.detail}" if attempt.detail else ""
+            lines.append(f"- `{attempt.status}` {attempt.step}{detail}")
+
     if report.summary_text.strip():
         lines.extend(["", "## 视频内容总结", ""])
         lines.append(report.summary_text.strip())

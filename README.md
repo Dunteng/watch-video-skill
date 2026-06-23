@@ -9,7 +9,8 @@
 脚本可以自动处理：
 
 - 下载 `yt-dlp` 支持的视频链接；
-- `yt-dlp` 失败时尝试解析移动端分享页 SSR 里的 `play_addr` 视频直链；
+- `yt-dlp` 失败时结构化解析移动端分享页 SSR 里的 `_ROUTER_DATA` / `play_addr` 视频直链；
+- 在报告里记录普通下载、浏览器 cookies 重试、SSR 解析和直链下载的诊断；
 - 下载平台字幕或自动字幕；
 - 探测视频时长、分辨率等元信息；
 - 解析 `.srt` / `.vtt` 字幕；
@@ -170,8 +171,8 @@ python3 -m watchvideo processes
 一次分析通常会生成：
 
 - `report.json`：结构化报告，适合程序继续处理；
-- `report.md`：人类可读报告，包含元信息、字幕文本和可选总结；
-- `summary-input.md`：面向 Agent 的摘要输入包；
+- `report.md`：人类可读报告，包含元信息、下载诊断、字幕文本和可选总结；
+- `summary-input.md`：面向 Agent 的摘要输入包，包含下载诊断和分段字幕；
 - `video/`：网络视频下载结果；
 - `subtitles/`：平台字幕或自动字幕；
 - `transcript/`：本地转写结果；

@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from watchvideo.models import AnalysisReport, Keyframe, MediaInfo, OcrResult, Source
+from watchvideo.models import AnalysisReport, DownloadAttempt, Keyframe, MediaInfo, OcrResult, Source
 from watchvideo.reporting import render_markdown_report
 
 
@@ -91,6 +91,34 @@ class ReportingTests(unittest.TestCase):
         self.assertIn("## OCR 文本", markdown)
         self.assertIn("00:00:02", markdown)
         self.assertIn("屏幕上的重点", markdown)
+
+    def test_markdown_report_includes_download_diagnostics_when_available(self):
+        report = AnalysisReport(
+            source=Source(kind="url", value="https://example.com/video"),
+            work_dir=Path("analysis/demo"),
+            video_path=Path("analysis/demo/video/share-page-play-addr.mp4"),
+            media=MediaInfo(
+                path=Path("analysis/demo/video/share-page-play-addr.mp4"),
+                duration_seconds=12.0,
+                width=1280,
+                height=720,
+            ),
+            transcript_cues=[],
+            transcript_text="",
+            keyframes=[],
+            download_attempts=[
+                DownloadAttempt(step="plain yt-dlp", status="failed", detail="fresh cookies"),
+                DownloadAttempt(step="mobile share page play_addr", status="ok", detail="share-page-play-addr.mp4"),
+            ],
+        )
+
+        markdown = render_markdown_report(report)
+
+        self.assertIn("## 下载诊断", markdown)
+        self.assertIn("plain yt-dlp", markdown)
+        self.assertIn("failed", markdown)
+        self.assertIn("fresh cookies", markdown)
+        self.assertIn("mobile share page play_addr", markdown)
 
 
 if __name__ == "__main__":

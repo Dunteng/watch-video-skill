@@ -69,7 +69,13 @@ class DownloaderTests(unittest.TestCase):
 
     def test_extract_play_addr_urls_prioritizes_window_router_data(self):
         html = r'''
-        <script>window.__noise={"url":"https://v3-web.douyinvod.com/noise.mp4"}</script>
+        <script>
+        window.__noise = {
+          "play_addr": {
+            "url_list": ["https:\/\/v3-web.douyinvod.com\/noise.mp4"]
+          }
+        };
+        </script>
         <script>
         window._ROUTER_DATA = {
           "loaderData": {

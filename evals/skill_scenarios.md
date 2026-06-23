@@ -51,6 +51,7 @@
 **通过标准：**
 
 - Agent 先运行 `watchvideo analyze`，让 CLI 尝试普通 `yt-dlp`、Chrome cookies 重试和移动端分享页 `_ROUTER_DATA` / `play_addr` 兜底。
+- Agent 读取 `report.md` / `summary-input.md` 的 `下载诊断`，或 `report.json` 里的 `download_attempts`，按真实失败步骤说明阻塞。
 - Agent 不打开 Chrome 页面或操作浏览器 UI。
 - 如果仍拿不到 MP4，Agent 只说明阻塞原因和下一步选择：提供本地视频或可访问直链。
 - Agent 不基于标题、简介、搜索结果或同主题资料做内容总结。
@@ -65,6 +66,7 @@
 - 说“不是逐字稿”后仍给出视频内容归纳。
 - 把公开搜索资料当成视频证据。
 - 打开 Chrome 页面人工访问抖音，而不是让 CLI 直接读取 cookies。
+- 不看下载诊断，笼统说“下载不到”或误判成视频不可访问。
 
 ## 场景 2：没有字幕且需要自动转写
 

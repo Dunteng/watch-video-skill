@@ -3,13 +3,17 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from watchvideo.analyzer import VideoAnalyzer
-from watchvideo.models import Keyframe, MediaInfo, SubtitleCue
+from watchvideo.models import DownloadAttempt, Keyframe, MediaInfo, SubtitleCue
 
 
 class FakeDownloader:
     def __init__(self):
         self.downloaded = False
         self.subtitle_downloaded = False
+        self.download_attempts = [
+            DownloadAttempt(step="plain yt-dlp", status="failed", detail="fresh cookies"),
+            DownloadAttempt(step="mobile share page play_addr", status="ok", detail="share-page-play-addr.mp4"),
+        ]
 
     def fetch_remote(self, url, output_dir, max_height):
         self.downloaded = True
@@ -102,6 +106,7 @@ class AnalyzerTests(unittest.TestCase):
         self.assertEqual(report.media.duration_seconds, 12.0)
         self.assertEqual(report.keyframes[0].timestamp_seconds, 5.0)
         self.assertEqual(media.max_keyframes, 3)
+        self.assertEqual(report.download_attempts, downloader.download_attempts)
 
     def test_analysis_falls_back_to_whisper_cpp_when_primary_transcriber_has_no_cues(self):
         media = FakeMediaClient()

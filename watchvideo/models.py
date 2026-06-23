@@ -54,6 +54,13 @@ class OcrResult:
 
 
 @dataclass(frozen=True)
+class DownloadAttempt:
+    step: str
+    status: str
+    detail: str = ""
+
+
+@dataclass(frozen=True)
 class AnalysisReport:
     source: Source
     work_dir: Path
@@ -65,6 +72,7 @@ class AnalysisReport:
     summary_text: str = ""
     ocr_results: list[OcrResult] = field(default_factory=list)
     subtitle_files: list[Path] = field(default_factory=list)
+    download_attempts: list[DownloadAttempt] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -110,5 +118,13 @@ class AnalysisReport:
                 for result in self.ocr_results
             ],
             "subtitle_files": [str(path) for path in self.subtitle_files],
+            "download_attempts": [
+                {
+                    "step": attempt.step,
+                    "status": attempt.status,
+                    "detail": attempt.detail,
+                }
+                for attempt in self.download_attempts
+            ],
             "warnings": self.warnings,
         }

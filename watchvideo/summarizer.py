@@ -30,6 +30,11 @@ def render_summary_prompt(report: dict[str, Any], chunk_seconds: float = 300.0) 
     else:
         lines.append("- 无")
 
+    download_attempts = _render_download_attempts(report)
+    if download_attempts:
+        lines.extend(["", "## 下载诊断", ""])
+        lines.extend(download_attempts)
+
     lines.extend(["", "## 关键帧", ""])
     lines.extend(_render_keyframe_hint(report))
 
@@ -103,6 +108,21 @@ def _render_ocr_results(report: dict[str, Any]) -> list[str]:
             continue
         timestamp = _format_duration(_number_value(item.get("timestamp_seconds")))
         lines.append(f"[{timestamp}] {text}")
+    return lines
+
+
+def _render_download_attempts(report: dict[str, Any]) -> list[str]:
+    lines: list[str] = []
+    for item in _list_value(report.get("download_attempts")):
+        if not isinstance(item, dict):
+            continue
+        step = str(item.get("step") or "").strip()
+        status = str(item.get("status") or "").strip()
+        detail = str(item.get("detail") or "").strip()
+        if not step or not status:
+            continue
+        suffix = f": {detail}" if detail else ""
+        lines.append(f"- `{status}` {step}{suffix}")
     return lines
 
 

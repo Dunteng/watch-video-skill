@@ -5,7 +5,7 @@ from pathlib import Path
 from .commands import CommandError
 from .downloader import YtDlpClient
 from .media import FfmpegClient
-from .models import AnalysisReport, Source, SubtitleCue
+from .models import AnalysisReport, DownloadAttempt, Source, SubtitleCue
 from .ocr import TesseractOcr
 from .sources import classify_source
 from .subtitles import collect_subtitle_files, cues_to_plain_text, load_subtitle_file
@@ -83,6 +83,7 @@ class VideoAnalyzer:
             keyframes=keyframes,
             ocr_results=ocr_results,
             subtitle_files=subtitle_files,
+            download_attempts=self._download_attempts_for_report(source),
             warnings=warnings,
         )
 
@@ -176,3 +177,8 @@ class VideoAnalyzer:
         if not cues:
             warnings.append("没有可用字幕，且本机未检测到可用 Whisper 转写结果")
         return cues
+
+    def _download_attempts_for_report(self, source: Source) -> list[DownloadAttempt]:
+        if source.kind == "file":
+            return []
+        return list(getattr(self.downloader, "download_attempts", []))

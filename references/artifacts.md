@@ -5,14 +5,14 @@ Use this reference when an analysis directory already exists or after running `a
 ## Priority Order
 
 1. `report.md`: human-readable report, durable place for the final summary.
-2. `summary-input.md`: model-friendly packet with metadata, warnings, keyframe directory, OCR, and chunked transcript.
+2. `summary-input.md`: model-friendly packet with metadata, warnings, download diagnostics, keyframe directory, OCR, and chunked transcript.
 3. `transcript/*.srt` or `transcript/*.txt`: raw transcription with timestamps.
 4. `keyframes/`: visual evidence for slides, code, diagrams, screenshots, and scene changes.
 5. `report.json`: structured source of paths, timestamps, warnings, OCR, and keyframe metadata.
 
 ## How To Read
 
-Start with `report.md` to understand source, duration, resolution, subtitle count, warnings, and whether a summary already exists.
+Start with `report.md` to understand source, duration, resolution, subtitle count, download diagnostics, warnings, and whether a summary already exists.
 
 Read `summary-input.md` for chunked transcript. If it is missing, generate it from `report.json` with the `summarize` command.
 
@@ -22,7 +22,7 @@ Inspect keyframes when:
 - the video likely contains slides, code, diagrams, product UI, charts, or on-screen text;
 - the user wants a learning note, interview answer, tutorial outline, or visual explanation.
 
-Use `report.json` for exact paths and timestamps. Do not copy the full JSON into the final answer unless the user asks.
+Use `report.json` for exact paths, timestamps, and the structured `download_attempts` list. Do not copy the full JSON into the final answer unless the user asks.
 
 ## Summary Output Standard
 

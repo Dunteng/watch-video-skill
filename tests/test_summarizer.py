@@ -99,6 +99,26 @@ class SummarizerTests(unittest.TestCase):
         self.assertIn("## OCR 文本", prompt)
         self.assertIn("[00:00:02] 屏幕文字", prompt)
 
+    def test_render_summary_prompt_includes_download_diagnostics(self):
+        report = {
+            "source": {"kind": "url", "value": "https://example.com/video"},
+            "video_path": "analysis/demo/video/share-page-play-addr.mp4",
+            "media": {},
+            "transcript_cues": [],
+            "transcript_text": "",
+            "download_attempts": [
+                {"step": "plain yt-dlp", "status": "failed", "detail": "fresh cookies"},
+                {"step": "mobile share page play_addr", "status": "ok", "detail": "1 candidate(s)"},
+            ],
+        }
+
+        prompt = render_summary_prompt(report)
+
+        self.assertIn("## 下载诊断", prompt)
+        self.assertIn("plain yt-dlp", prompt)
+        self.assertIn("fresh cookies", prompt)
+        self.assertIn("mobile share page play_addr", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()
