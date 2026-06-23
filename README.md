@@ -1,41 +1,56 @@
 # watchvideo
 
-`watchvideo` 是一个给 Codex 辅助使用的视频分析工作台原型。它把本地视频或网络视频链接整理成可读材料，再交给 Codex 或其他 LLM 做理解和总结。
+`watchvideo` 是一个 **Codex skill + 本地视频分析 CLI**。它把本地视频或网络视频链接整理成可读证据，再由 Codex 基于报告、字幕、转写和关键帧完成总结。
 
-这个仓库同时是：
+**核心边界：CLI 负责准备证据，Agent 负责理解和写总结。** 这个项目不内置云端 LLM 摘要，也不是视频剪辑、转码或播放器工具。
 
-- **Codex Skill**：根目录的 `SKILL.md` 负责告诉 Agent 何时使用、如何运行和如何总结视频。
-- **Python CLI 工具**：`watchvideo/` 包含可直接运行的本地视频分析代码。
+## 功能
 
-作为 Skill 使用时，Agent 应从本仓库根目录运行 `python3 -m watchvideo ...`，不需要依赖旧项目目录。
+脚本可以自动处理：
 
-当前仓库仍不是完整的一键式视频理解产品。准确边界是：
+- 下载 `yt-dlp` 支持的视频链接；
+- 下载平台字幕或自动字幕；
+- 探测视频时长、分辨率等元信息；
+- 解析 `.srt` / `.vtt` 字幕；
+- 抽取关键帧；
+- 生成 `report.json` 和 `report.md`；
+- 生成面向 Agent 阅读的 `summary-input.md`；
+- 检查疑似残留的高负载进程。
 
-- **脚本自动做**：下载视频、下载平台字幕、探测视频信息、解析字幕、抽关键帧、生成报告。
-- **脚本可选做**：调用系统 `whisper` CLI、调用本地 `whisper.cpp`、限制最大关键帧数量、对关键帧做 OCR、生成摘要输入包、检查疑似残留进程。
-- **Codex 参与做**：读取 `report.md`、`summary-input.md`、字幕和关键帧，提炼“视频讲了什么”。
-- **暂未自动做**：云端 LLM 摘要、复杂场景检测、自动结束残留进程。
+脚本可以按需处理：
 
-## 能力
+- 调用系统 `whisper` CLI 或本地 `whisper.cpp` 转写音频；
+- 使用 `tesseract` 对关键帧做 OCR；
+- 限制关键帧数量，避免长视频产物过大。
 
-输入可以是：
+脚本不会自动处理：
 
-- 本地视频文件，例如 `./video.mp4`；
-- 网络视频链接，例如抖音短链、YouTube 链接或其他 `yt-dlp` 支持的链接。
+- 云端 LLM 总结；
+- 视频剪辑、压缩、转码、发布；
+- 完整场景检测；
+- 自动结束进程。
 
-输出包含：
+## 安装为 Codex Skill
 
-- `report.json`：结构化报告，适合继续给程序处理；
-- `report.md`：人类可读报告，包含字幕文本和可选的视频内容总结；
-- `video/`：网络视频下载结果；
-- `subtitles/`：平台字幕或自动字幕；
-- `transcript/`：音频转写结果，如果转写成功；
-- `keyframes/`：从稳定区域里选出的关键帧。
-- `summary-input.md`：由 `summarize` 命令生成，供 Codex 或其他 LLM 阅读。
+把仓库放到 Codex skills 目录：
 
-## 环境要求
+```bash
+mkdir -p ~/.codex/skills
+git clone https://github.com/Dunteng/watch-video-skill ~/.codex/skills/watch-video
+```
 
-必需：
+更新已安装版本：
+
+```bash
+cd ~/.codex/skills/watch-video
+git pull
+```
+
+安装或更新后，**重启 Codex 会话**，让 Codex 重新发现 `$watch-video`。
+
+## 系统依赖
+
+必需工具：
 
 ```bash
 python3
@@ -44,7 +59,13 @@ ffmpeg
 ffprobe
 ```
 
-可选：
+macOS 可以用 Homebrew 安装：
+
+```bash
+brew install yt-dlp ffmpeg
+```
+
+可选工具：
 
 ```bash
 whisper
@@ -53,32 +74,56 @@ whisper.cpp 的 whisper-cli
 whisper.cpp 模型文件
 ```
 
-说明：
-
-- 系统 Whisper 转写会自动查找名为 `whisper` 的 CLI。
-- `whisper.cpp` 通过 `--whisper-cpp-bin` 和 `--whisper-model` 接入，流程见 [docs/OPERATIONS.md](docs/OPERATIONS.md)。
-- `tesseract` 通过 `--ocr` 启用；默认关闭，避免长视频额外耗时。
-
-## 快速使用
-
-检查本机工具：
+检查环境：
 
 ```bash
+cd ~/.codex/skills/watch-video
 python3 -m watchvideo doctor
 ```
 
-`doctor` 会用 `REQUIRED_*` 标记必需工具，用 `OPTIONAL_*` 标记可选工具。只有 `REQUIRED_MISSING` 需要先阻断分析流程。
+`doctor` 输出含义：
 
-分析本地视频：
+- `REQUIRED_OK`：必需工具可用；
+- `REQUIRED_MISSING`：必须先安装，否则分析流程会失败；
+- `OPTIONAL_OK`：可选能力可用；
+- `OPTIONAL_MISSING`：可选能力不可用，但主流程可以继续。
 
-```bash
-python3 -m watchvideo analyze ./video.mp4 -o analysis/local-video
+## 用 Codex 分析视频
+
+在 Codex 里直接请求：
+
+```text
+用 $watch-video 分析这个视频：https://example.com/video
 ```
 
-分析网络视频：
+或：
+
+```text
+用 $watch-video 总结这个本地视频：/path/to/video.mp4
+```
+
+Agent 会按 skill 流程运行 CLI、读取证据文件、输出总结，并在已有 `report.md` 时把最终总结写回 `## 视频内容总结`。
+
+**不要只凭视频 URL 总结。** 这个 skill 要求先生成或读取分析产物，再基于可见/可转写证据下结论。
+
+## 手动运行 CLI
+
+如果不通过 Codex，也可以手动运行。建议先保存用户工作目录，再从 skill 仓库运行 CLI，并把输出写回当前工作区：
 
 ```bash
-python3 -m watchvideo analyze "https://example.com/video" -o analysis/remote-video
+TASK_WORKDIR="$(pwd)"
+cd ~/.codex/skills/watch-video
+python3 -m watchvideo analyze "https://example.com/video" \
+  -o "$TASK_WORKDIR/analysis/demo"
+```
+
+本地视频：
+
+```bash
+TASK_WORKDIR="$(pwd)"
+cd ~/.codex/skills/watch-video
+python3 -m watchvideo analyze "$TASK_WORKDIR/video.mp4" \
+  -o "$TASK_WORKDIR/analysis/local-video"
 ```
 
 常用参数：
@@ -90,10 +135,40 @@ python3 -m watchvideo analyze "https://example.com/video" \
   --max-keyframes 80 \
   --sub-lang "zh.*" \
   --sub-lang "en.*" \
-  -o analysis/demo
+  -o "$TASK_WORKDIR/analysis/demo"
 ```
 
-使用本地 `whisper.cpp`：
+生成摘要输入包：
+
+```bash
+python3 -m watchvideo summarize "$TASK_WORKDIR/analysis/demo/report.json" \
+  -o "$TASK_WORKDIR/analysis/demo/summary-input.md" \
+  --chunk-seconds 300
+```
+
+检查残留进程：
+
+```bash
+python3 -m watchvideo processes
+```
+
+## 输出产物
+
+一次分析通常会生成：
+
+- `report.json`：结构化报告，适合程序继续处理；
+- `report.md`：人类可读报告，包含元信息、字幕文本和可选总结；
+- `summary-input.md`：面向 Agent 的摘要输入包；
+- `video/`：网络视频下载结果；
+- `subtitles/`：平台字幕或自动字幕；
+- `transcript/`：本地转写结果；
+- `keyframes/`：关键帧图片。
+
+**不要提交运行产物。** `.gitignore` 已忽略 `analysis/`、`.tools/`、`.models/`、媒体文件、模型文件、`.env` 和缓存目录。
+
+## 本地转写和 OCR
+
+使用 `whisper.cpp`：
 
 ```bash
 python3 -m watchvideo analyze "https://example.com/video" \
@@ -101,68 +176,49 @@ python3 -m watchvideo analyze "https://example.com/video" \
   --whisper-model .tools/whisper.cpp/models/ggml-base.bin \
   --whisper-prompt "Agent, Codex, AI 编程" \
   --language zh \
-  -o analysis/demo
+  --max-keyframes 80 \
+  -o "$TASK_WORKDIR/analysis/demo"
 ```
 
-启用 OCR 和结束后进程检查：
+启用 OCR：
 
 ```bash
-python3 -m watchvideo analyze ./video.mp4 \
+python3 -m watchvideo analyze "$TASK_WORKDIR/video.mp4" \
   --ocr \
-  --check-processes \
-  -o analysis/local-video
+  -o "$TASK_WORKDIR/analysis/local-video"
 ```
 
-生成摘要输入包：
-
-```bash
-python3 -m watchvideo summarize analysis/demo/report.json \
-  -o analysis/demo/summary-input.md \
-  --chunk-seconds 300
-```
-
-单独检查疑似残留进程：
-
-```bash
-python3 -m watchvideo processes
-```
-
-## 用 Codex 得到视频摘要
-
-当前推荐流程：
-
-1. 先跑 `analyze` 生成视频、字幕和关键帧材料。
-2. 如果平台没有字幕，优先用 `--whisper-cpp-bin` 和 `--whisper-model` 让 CLI 自动转写。
-3. 跑 `summarize` 生成 `summary-input.md`。
-4. 让 Codex 读取 `report.md`、`summary-input.md`、`transcript/*.srt` 和关键帧，输出总摘要、分段摘要和关键观点。
-5. 把最终“视频讲了什么”的内容写回 `report.md` 的 `视频内容总结` 区块。
-
-脚本本身仍只负责材料准备和输入包整理，最后的中文理解和总结来自 Codex。
-
-报告规范：
-
-- `report.md` 不逐张列出关键帧路径或 score，只保留关键帧数量和目录。
-- 关键帧明细保留在 `report.json`，供程序或 Codex 需要时读取。
-- 最终给人的视频内容总结必须写进 `report.md`，不要只留在对话里。
-
-## 项目文档
-
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)：模块边界和数据流。
-- [docs/OPERATIONS.md](docs/OPERATIONS.md)：本地操作、手动转写、验证和收尾检查。
-- [docs/PUBLISHING.md](docs/PUBLISHING.md)：上传 GitHub 前的文件清单、验证步骤和隐私检查。
-- [evals/skill_scenarios.md](evals/skill_scenarios.md)：验证 Agent 是否正确使用本 skill 的行为场景。
+`tesseract` 缺失时，主流程会继续，只是不会识别画面文字。
 
 ## 开发验证
 
-本项目暂时不依赖 pytest，使用标准库测试：
+本项目使用标准库 `unittest`，不要求 `pytest`：
 
 ```bash
 python3 -m unittest discover -s tests -v
 python3 -m compileall watchvideo tests
+python3 -m watchvideo doctor
 ```
 
-当前本机没有 `ruff`、`mypy`、`pytest`。如果之后引入这些开发依赖，再把对应命令加入验证流程。
+`doctor` 中不能出现 `REQUIRED_MISSING`。`OPTIONAL_MISSING` 可以接受，但会影响本地转写或 OCR 能力。
 
-## 长期维护
+## 文档
 
-这个仓库作为长期通用 skill 时，`tests/`、`evals/`、`docs/` 都应该随源码一起保留并上传。不要上传 `analysis/`、本地模型、真实视频、转写结果、关键帧、`.env` 或用户笔记。
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)：模块边界和数据流。
+- [docs/OPERATIONS.md](docs/OPERATIONS.md)：本地操作、转写、OCR 和进程检查。
+- [docs/PUBLISHING.md](docs/PUBLISHING.md)：发布到 GitHub 前的检查清单。
+- [evals/skill_scenarios.md](evals/skill_scenarios.md)：Agent 行为评估场景。
+
+## 维护和发布
+
+作为长期通用 skill，仓库应保留：
+
+- `SKILL.md`
+- `references/`
+- `watchvideo/`
+- `scripts/`
+- `tests/`
+- `evals/`
+- `docs/`
+
+公开发布前，确认没有提交真实视频、音频、字幕、关键帧、转写报告、Cookie、token、`.env`、私有链接或用户 Obsidian 笔记。

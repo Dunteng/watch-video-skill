@@ -70,7 +70,7 @@ cd "$PROJECT_ROOT"
 python3 -m watchvideo analyze "https://example.com/video" \
   --whisper-cpp-bin .tools/whisper.cpp/build/bin/whisper-cli \
   --whisper-model .tools/whisper.cpp/models/ggml-base.bin \
-  --whisper-prompt "Prompt, Loop Engineering, Agent, Webhook, Cron job, Claude Code, Codex, AI 编程, skill, GitHub" \
+  --whisper-prompt "视频里的领域术语、产品名、人名或技术词" \
   --language zh \
   --max-keyframes 80 \
   -o analysis/demo
@@ -87,7 +87,7 @@ python3 -m watchvideo analyze "https://example.com/video" \
   -osrt \
   -otxt \
   -of analysis/demo/transcript/base \
-  --prompt "Prompt, Loop Engineering, Agent, Webhook, Cron job, Claude Code, Codex, AI 编程, skill, GitHub"
+  --prompt "视频里的领域术语、产品名、人名或技术词"
 ```
 
 然后让 Codex 读取：
@@ -137,19 +137,6 @@ python3 -m watchvideo analyze ./video.mp4 \
 ```
 
 如果没有安装 `tesseract`，报告会记录 warning，主流程继续完成。
-
-## 平台短链验证记录
-
-对一个已脱敏的平台短链做过实测，结果如下：
-
-- `yt-dlp` 下载成功；
-- 视频实际时长是 `20:24`；
-- 分辨率是 `1280x720`；
-- 平台字幕为 `0`；
-- `whisper.cpp base` 生成了 `174` 条字幕，约 `7676` 字；
-- `--keyframe-interval 5` 生成了 `245` 张关键帧，数量偏多。
-
-这个验证说明下载、探测、抽帧、转写、Codex 总结的组合流程可用。现在 CLI 已补 `whisper.cpp` 自动接入和关键帧数量限制。
 
 ## 开发验证
 

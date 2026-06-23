@@ -4,13 +4,13 @@ Use this reference when the video workflow has missing tools, missing subtitles,
 
 ## Tool Missing
 
-If `doctor` reports missing required tools, stop and report the specific missing command. Required tools are `yt-dlp`, `ffmpeg`, and `ffprobe`.
+If `doctor` reports `REQUIRED_MISSING`, stop and report the specific missing command. Required tools are `python3`, `yt-dlp`, `ffmpeg`, and `ffprobe`.
 
 If optional tools are missing:
 
-- missing `whisper`: use platform subtitles or configured `whisper.cpp`;
-- missing `tesseract`: continue without OCR and mention that visual text was not OCR'd;
-- missing `whisper.cpp`: ask whether the user wants local transcription setup or proceed with available subtitles/keyframes.
+- `OPTIONAL_MISSING whisper`: use platform subtitles or configured `whisper.cpp`;
+- `OPTIONAL_MISSING tesseract`: continue without OCR and mention that visual text was not OCR'd;
+- missing configured `whisper.cpp` binary or model: ask whether the user wants local transcription setup or proceed with available subtitles/keyframes.
 
 ## No Subtitle Or Transcript
 

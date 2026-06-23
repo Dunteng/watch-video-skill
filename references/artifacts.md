@@ -44,14 +44,14 @@ Use the helper script from the skill repository root:
 
 ```bash
 python3 scripts/update_report_summary.py \
-  analysis/demo/report.md \
+  "$TASK_WORKDIR/analysis/demo/report.md" \
   --summary-file /tmp/video-summary.md
 ```
 
 Or pipe summary text through stdin:
 
 ```bash
-printf '%s\n' "总结内容" | python3 scripts/update_report_summary.py analysis/demo/report.md
+printf '%s\n' "总结内容" | python3 scripts/update_report_summary.py "$TASK_WORKDIR/analysis/demo/report.md"
 ```
 
 Do not overwrite unrelated sections such as warnings, keyframe hints, OCR, or transcript.
