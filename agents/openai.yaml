@@ -1,0 +1,4 @@
+interface:
+  display_name: "Watch Video"
+  short_description: "Analyze and summarize video links or files"
+  default_prompt: "Use $watch-video to analyze this video link and write a structured Chinese summary."
