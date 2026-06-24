@@ -41,6 +41,7 @@ Do not use this skill for:
 - Do not open browser UI; let the CLI read configured browser cookies when `yt-dlp` needs them.
 - Prefer platform subtitles; otherwise let the CLI use system `whisper` or auto-prepare local `whisper.cpp` unless disabled.
 - Use keyframes to verify slides, code, diagrams, on-screen text, and visual context.
+- Treat remote MP4 downloads as temporary; they are deleted after analysis unless the user asks to keep them. Never delete local source videos.
 - Mark uncertain transcription, OCR, names, dates, and technical terms as needing confirmation.
 - Keep summaries concise, structured, and grounded in visible/transcribed evidence.
 

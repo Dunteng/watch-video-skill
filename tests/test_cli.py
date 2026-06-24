@@ -48,6 +48,12 @@ class CliTests(unittest.TestCase):
         self.assertTrue(args.enable_ocr)
         self.assertTrue(args.check_processes)
         self.assertTrue(args.auto_transcribe_setup)
+        self.assertFalse(args.keep_video)
+
+    def test_analyze_accepts_keep_video_option(self):
+        args = build_parser().parse_args(["analyze", "https://example.com/video", "--keep-video"])
+
+        self.assertTrue(args.keep_video)
 
     def test_analyze_accepts_auto_transcribe_setup_options(self):
         args = build_parser().parse_args(

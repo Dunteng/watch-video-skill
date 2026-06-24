@@ -119,6 +119,30 @@ class SummarizerTests(unittest.TestCase):
         self.assertIn("fresh cookies", prompt)
         self.assertIn("mobile share page play_addr", prompt)
 
+    def test_render_summary_prompt_includes_cleanup_records(self):
+        report = {
+            "source": {"kind": "url", "value": "https://example.com/video"},
+            "video_path": "analysis/demo/video/remote.mp4",
+            "media": {},
+            "transcript_cues": [],
+            "transcript_text": "",
+            "cleanup_records": [
+                {
+                    "target": "downloaded_video",
+                    "path": "analysis/demo/video/remote.mp4",
+                    "status": "deleted",
+                    "detail": "分析完成后删除远程下载视频",
+                }
+            ],
+        }
+
+        prompt = render_summary_prompt(report)
+
+        self.assertIn("## 清理记录", prompt)
+        self.assertIn("downloaded_video", prompt)
+        self.assertIn("deleted", prompt)
+        self.assertIn("analysis/demo/video/remote.mp4", prompt)
+
     def test_render_summary_prompt_includes_summary_contract_and_transcription_info(self):
         report = {
             "source": {"kind": "file", "value": "video.mp4"},

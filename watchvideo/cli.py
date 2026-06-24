@@ -71,6 +71,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     analyze.add_argument("--tools-dir", default=None, help="自动准备 whisper.cpp 时使用的工具目录")
     analyze.add_argument(
+        "--keep-video",
+        action="store_true",
+        help="保留网络视频下载文件；默认分析完成后自动删除下载视频",
+    )
+    analyze.add_argument(
         "--auto-transcribe-setup",
         dest="auto_transcribe_setup",
         action="store_true",
@@ -135,6 +140,7 @@ def main(argv: list[str] | None = None) -> int:
                 max_keyframes=args.max_keyframes,
                 language=args.language,
                 enable_ocr=args.enable_ocr,
+                cleanup_downloaded_video=not args.keep_video,
             )
         except (CommandError, FileNotFoundError, OSError, ValueError) as exc:
             write_failure_report(

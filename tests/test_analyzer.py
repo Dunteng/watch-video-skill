@@ -29,6 +29,31 @@ class FakeDownloader:
         return [subtitle]
 
 
+class WritingDownloader(FakeDownloader):
+    def __init__(self):
+        super().__init__()
+        self.downloaded_path = None
+
+    def fetch_remote(self, url, output_dir, max_height):
+        self.downloaded = True
+        path = Path(output_dir) / "remote.mp4"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"fake mp4")
+        self.downloaded_path = path
+        return path
+
+
+class OutsidePathDownloader(FakeDownloader):
+    def __init__(self, downloaded_path):
+        super().__init__()
+        self.downloaded_path = downloaded_path
+
+    def fetch_remote(self, url, output_dir, max_height):
+        self.downloaded = True
+        self.downloaded_path.write_bytes(b"fake mp4")
+        return self.downloaded_path
+
+
 class FakeMediaClient:
     def __init__(self):
         self.max_keyframes = None
@@ -115,6 +140,84 @@ class AnalyzerTests(unittest.TestCase):
         self.assertEqual(report.keyframes[0].timestamp_seconds, 5.0)
         self.assertEqual(media.max_keyframes, 3)
         self.assertEqual(report.download_attempts, downloader.download_attempts)
+
+    def test_remote_analysis_deletes_downloaded_video_by_default(self):
+        downloader = WritingDownloader()
+
+        with TemporaryDirectory() as tmp:
+            report = VideoAnalyzer(
+                downloader=downloader,
+                media_client=FakeMediaClient(),
+                transcriber=FakeTranscriber(),
+            ).analyze(
+                "https://example.com/video",
+                output_dir=Path(tmp),
+            )
+
+            assert downloader.downloaded_path is not None
+            self.assertFalse(downloader.downloaded_path.exists())
+
+        self.assertEqual(len(report.cleanup_records), 1)
+        self.assertEqual(report.cleanup_records[0].target, "downloaded_video")
+        self.assertEqual(report.cleanup_records[0].status, "deleted")
+
+    def test_remote_analysis_can_keep_downloaded_video(self):
+        downloader = WritingDownloader()
+
+        with TemporaryDirectory() as tmp:
+            report = VideoAnalyzer(
+                downloader=downloader,
+                media_client=FakeMediaClient(),
+                transcriber=FakeTranscriber(),
+            ).analyze(
+                "https://example.com/video",
+                output_dir=Path(tmp),
+                cleanup_downloaded_video=False,
+            )
+
+            assert downloader.downloaded_path is not None
+            self.assertTrue(downloader.downloaded_path.exists())
+
+        self.assertEqual(report.cleanup_records, [])
+
+    def test_local_analysis_never_deletes_input_video(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "local.mp4"
+            video.write_bytes(b"fake mp4")
+
+            report = VideoAnalyzer(
+                media_client=FakeMediaClient(),
+                transcriber=FakeTranscriber(),
+            ).analyze(
+                str(video),
+                output_dir=root / "out",
+            )
+
+            self.assertTrue(video.exists())
+
+        self.assertEqual(report.cleanup_records, [])
+
+    def test_remote_cleanup_skips_paths_outside_output_directory(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            outside_video = root / "outside.mp4"
+            downloader = OutsidePathDownloader(outside_video)
+
+            report = VideoAnalyzer(
+                downloader=downloader,
+                media_client=FakeMediaClient(),
+                transcriber=FakeTranscriber(),
+            ).analyze(
+                "https://example.com/video",
+                output_dir=root / "analysis",
+            )
+
+            self.assertTrue(outside_video.exists())
+
+        self.assertEqual(len(report.cleanup_records), 1)
+        self.assertEqual(report.cleanup_records[0].status, "skipped")
+        self.assertTrue(any("不在本次输出目录内" in warning for warning in report.warnings))
 
     def test_analysis_falls_back_to_whisper_cpp_when_primary_transcriber_has_no_cues(self):
         media = FakeMediaClient()

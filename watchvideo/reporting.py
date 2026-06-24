@@ -69,6 +69,13 @@ def render_markdown_report(report: AnalysisReport) -> str:
             detail = f": {attempt.detail}" if attempt.detail else ""
             lines.append(f"- `{attempt.status}` {attempt.step}{detail}")
 
+    if report.cleanup_records:
+        lines.extend(["", "## 清理记录", ""])
+        for record in report.cleanup_records:
+            label = _cleanup_label(record.target, record.status)
+            detail = f": {record.detail}" if record.detail else ""
+            lines.append(f"- `{record.status}` {label}: `{record.path}`{detail}")
+
     if report.transcription_info:
         info = report.transcription_info
         transcript_files = ", ".join(f"`{path}`" for path in info.transcript_files) or "`none`"
@@ -146,6 +153,14 @@ def _download_attempts_to_dict(download_attempts: list[DownloadAttempt]) -> list
         }
         for attempt in download_attempts
     ]
+
+
+def _cleanup_label(target: str, status: str) -> str:
+    if target == "downloaded_video" and status == "deleted":
+        return "已删除下载视频"
+    if target == "downloaded_video":
+        return "下载视频清理"
+    return target
 
 
 def _render_evidence_quality(report: AnalysisReport) -> list[str]:

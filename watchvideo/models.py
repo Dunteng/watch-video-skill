@@ -70,6 +70,14 @@ class TranscriptionInfo:
 
 
 @dataclass(frozen=True)
+class CleanupRecord:
+    target: str
+    path: Path
+    status: str
+    detail: str = ""
+
+
+@dataclass(frozen=True)
 class AnalysisReport:
     source: Source
     work_dir: Path
@@ -83,6 +91,7 @@ class AnalysisReport:
     subtitle_files: list[Path] = field(default_factory=list)
     download_attempts: list[DownloadAttempt] = field(default_factory=list)
     transcription_info: TranscriptionInfo | None = None
+    cleanup_records: list[CleanupRecord] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -149,5 +158,14 @@ class AnalysisReport:
                 if self.transcription_info
                 else None
             ),
+            "cleanup_records": [
+                {
+                    "target": record.target,
+                    "path": str(record.path),
+                    "status": record.status,
+                    "detail": record.detail,
+                }
+                for record in self.cleanup_records
+            ],
             "warnings": self.warnings,
         }

@@ -5,7 +5,14 @@ from pathlib import Path
 from .commands import CommandError
 from .downloader import YtDlpClient
 from .media import FfmpegClient
-from .models import AnalysisReport, DownloadAttempt, Source, SubtitleCue, TranscriptionInfo
+from .models import (
+    AnalysisReport,
+    CleanupRecord,
+    DownloadAttempt,
+    Source,
+    SubtitleCue,
+    TranscriptionInfo,
+)
 from .ocr import TesseractOcr
 from .sources import classify_source
 from .subtitles import collect_subtitle_files, cues_to_plain_text, load_subtitle_file
@@ -41,6 +48,7 @@ class VideoAnalyzer:
         max_keyframes: int | None = None,
         language: str | None = None,
         enable_ocr: bool = False,
+        cleanup_downloaded_video: bool = True,
     ) -> AnalysisReport:
         # 编排边界：这里负责调度各阶段，不把下载/转写/抽帧细节写在一起。
         source = classify_source(source_value)
@@ -72,6 +80,13 @@ class VideoAnalyzer:
             max_keyframes=max_keyframes,
         )
         ocr_results = self.ocr_engine.extract(keyframes, warnings) if enable_ocr else []
+        cleanup_records = self._cleanup_downloaded_video(
+            source=source,
+            output_dir=output_dir,
+            video_path=video_path,
+            enabled=cleanup_downloaded_video,
+            warnings=warnings,
+        )
 
         return AnalysisReport(
             source=source,
@@ -85,6 +100,7 @@ class VideoAnalyzer:
             subtitle_files=subtitle_files,
             download_attempts=self._download_attempts_for_report(source),
             transcription_info=transcription_info,
+            cleanup_records=cleanup_records,
             warnings=warnings,
         )
 
@@ -205,6 +221,71 @@ class VideoAnalyzer:
         if source.kind == "file":
             return []
         return list(getattr(self.downloader, "download_attempts", []))
+
+    def _cleanup_downloaded_video(
+        self,
+        source: Source,
+        output_dir: Path,
+        video_path: Path,
+        enabled: bool,
+        warnings: list[str],
+    ) -> list[CleanupRecord]:
+        # 函数职责和边界：只清理本次远程下载到输出目录内的 MP4，不触碰用户本地源文件。
+        if source.kind == "file" or not enabled:
+            return []
+        if not video_path.exists():
+            return []
+
+        try:
+            resolved_video = video_path.resolve()
+            resolved_output = output_dir.resolve()
+            resolved_video.relative_to(resolved_output)
+        except ValueError:
+            detail = "跳过下载视频清理：视频路径不在本次输出目录内"
+            warnings.append(f"{detail}: {video_path}")
+            return [
+                CleanupRecord(
+                    target="downloaded_video",
+                    path=video_path,
+                    status="skipped",
+                    detail=detail,
+                )
+            ]
+
+        if not video_path.is_file():
+            detail = "跳过下载视频清理：目标不是普通文件"
+            warnings.append(f"{detail}: {video_path}")
+            return [
+                CleanupRecord(
+                    target="downloaded_video",
+                    path=video_path,
+                    status="skipped",
+                    detail=detail,
+                )
+            ]
+
+        try:
+            video_path.unlink()
+        except OSError as exc:
+            detail = f"下载视频清理失败: {exc}"
+            warnings.append(detail)
+            return [
+                CleanupRecord(
+                    target="downloaded_video",
+                    path=video_path,
+                    status="failed",
+                    detail=detail,
+                )
+            ]
+
+        return [
+            CleanupRecord(
+                target="downloaded_video",
+                path=video_path,
+                status="deleted",
+                detail="分析完成后删除远程下载视频",
+            )
+        ]
 
     def _transcription_info(
         self,

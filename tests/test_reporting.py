@@ -3,6 +3,7 @@ import unittest
 
 from watchvideo.models import (
     AnalysisReport,
+    CleanupRecord,
     DownloadAttempt,
     Keyframe,
     MediaInfo,
@@ -128,6 +129,36 @@ class ReportingTests(unittest.TestCase):
         self.assertIn("failed", markdown)
         self.assertIn("fresh cookies", markdown)
         self.assertIn("mobile share page play_addr", markdown)
+
+    def test_markdown_report_includes_cleanup_records_when_available(self):
+        report = AnalysisReport(
+            source=Source(kind="url", value="https://example.com/video"),
+            work_dir=Path("analysis/demo"),
+            video_path=Path("analysis/demo/video/remote.mp4"),
+            media=MediaInfo(
+                path=Path("analysis/demo/video/remote.mp4"),
+                duration_seconds=12.0,
+                width=1280,
+                height=720,
+            ),
+            transcript_cues=[],
+            transcript_text="",
+            keyframes=[],
+            cleanup_records=[
+                CleanupRecord(
+                    target="downloaded_video",
+                    path=Path("analysis/demo/video/remote.mp4"),
+                    status="deleted",
+                    detail="分析完成后删除远程下载视频",
+                )
+            ],
+        )
+
+        markdown = render_markdown_report(report)
+
+        self.assertIn("## 清理记录", markdown)
+        self.assertIn("已删除下载视频", markdown)
+        self.assertIn("analysis/demo/video/remote.mp4", markdown)
 
     def test_markdown_report_includes_transcription_metadata_when_available(self):
         report = AnalysisReport(

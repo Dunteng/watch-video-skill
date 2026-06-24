@@ -108,7 +108,7 @@ python3 -m watchvideo doctor
 用 $watch-video 总结这个本地视频：/path/to/video.mp4
 ```
 
-Agent 会按 skill 流程运行 CLI、读取证据文件、输出总结。只要请求是总结、分析、看懂或“讲了什么”，Agent 默认给出**文档级总结**，并在已有 `report.md` 时把最终总结写回 `## 视频内容总结`；如果当前环境有 `outputs/` 这类用户可见目录，也会同步生成 Markdown 交付文件。只有你明确要求不要写文件时才跳过。
+Agent 会按 skill 流程运行 CLI、读取证据文件、输出总结。只要请求是总结、分析、看懂或“讲了什么”，Agent 默认给出**文档级总结**，并在已有 `report.md` 时把最终总结写回 `## 视频内容总结`；如果当前环境有 `outputs/` 这类用户可见目录，也会同步生成 Markdown 交付文件。只有你明确要求不要写文件时才跳过。网络视频的下载 MP4 默认在分析完成后删除，本地输入文件不会被删除。
 
 **不要只凭视频 URL、标题、简介或搜索结果总结。** 这个 skill 要求先生成或读取分析产物，再基于 MP4、字幕/转写、OCR 和关键帧证据下结论。技术类、面试类、教程类或方法论类视频默认生成可复用的技术备稿：一句话总结、视频主线、核心概念拆解、常见误区、可执行方法、面试回答模板、转写校正说明。最终总结应优先使用时间戳、关键帧或 OCR 作为依据；证据不足的专名、数字、术语和画面内容要标为需确认，缺少证据的章节保留标题并写“视频未明确提到”。遇到 cookies 拦截时 CLI 会直接用 Chrome cookies 重试；拿不到证据时应说明下载阻塞，并要求用户提供本地视频或可访问直链。
 
@@ -143,6 +143,14 @@ python3 -m watchvideo analyze "https://example.com/video" \
   --max-keyframes 80 \
   --sub-lang "zh.*" \
   --sub-lang "en.*" \
+  -o "$TASK_WORKDIR/analysis/demo"
+```
+
+远程下载的 MP4 默认会在探测、转写、抽帧和 OCR 完成后删除；`report.md` 和 `summary-input.md` 会记录清理结果。需要保留原始下载文件时加：
+
+```bash
+python3 -m watchvideo analyze "https://example.com/video" \
+  --keep-video \
   -o "$TASK_WORKDIR/analysis/demo"
 ```
 
@@ -181,9 +189,9 @@ python3 -m watchvideo processes
 一次分析通常会生成：
 
 - `report.json`：结构化报告，适合程序继续处理；
-- `report.md`：人类可读报告，包含元信息、证据质量、时间线速览、下载诊断、转写信息、字幕文本和可选总结；
-- `summary-input.md`：面向 Agent 的摘要输入包，包含总结写作要求、技术/面试类默认报告结构、下载诊断、转写信息、关键帧时间戳和分段字幕；
-- `video/`：网络视频下载结果；
+- `report.md`：人类可读报告，包含元信息、证据质量、时间线速览、下载诊断、清理记录、转写信息、字幕文本和可选总结；
+- `summary-input.md`：面向 Agent 的摘要输入包，包含总结写作要求、技术/面试类默认报告结构、下载诊断、清理记录、转写信息、关键帧时间戳和分段字幕；
+- `video/`：网络视频临时下载目录；默认分析完成后删除下载 MP4，使用 `--keep-video` 可保留；
 - `subtitles/`：平台字幕或自动字幕；
 - `transcript/`：本地转写结果；
 - `keyframes/`：关键帧图片。

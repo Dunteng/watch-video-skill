@@ -72,6 +72,11 @@ def render_summary_prompt(report: dict[str, Any], chunk_seconds: float = 300.0) 
         lines.extend(["", "## 下载诊断", ""])
         lines.extend(download_attempts)
 
+    cleanup_records = _render_cleanup_records(report)
+    if cleanup_records:
+        lines.extend(["", "## 清理记录", ""])
+        lines.extend(cleanup_records)
+
     transcription_info = _render_transcription_info(report)
     if transcription_info:
         lines.extend(["", "## 转写信息", ""])
@@ -211,6 +216,23 @@ def _render_download_attempts(report: dict[str, Any]) -> list[str]:
             continue
         suffix = f": {detail}" if detail else ""
         lines.append(f"- `{status}` {step}{suffix}")
+    return lines
+
+
+def _render_cleanup_records(report: dict[str, Any]) -> list[str]:
+    lines: list[str] = []
+    for item in _list_value(report.get("cleanup_records")):
+        if not isinstance(item, dict):
+            continue
+        target = str(item.get("target") or "").strip()
+        status = str(item.get("status") or "").strip()
+        path = str(item.get("path") or "").strip()
+        detail = str(item.get("detail") or "").strip()
+        if not target or not status:
+            continue
+        path_text = f": `{path}`" if path else ""
+        suffix = f" ({detail})" if detail else ""
+        lines.append(f"- `{status}` {target}{path_text}{suffix}")
     return lines
 
 

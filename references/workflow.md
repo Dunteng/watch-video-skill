@@ -59,6 +59,8 @@ Remote URL:
 python3 -m watchvideo analyze "https://example.com/video" -o "$TASK_WORKDIR/analysis/remote-video"
 ```
 
+For remote URLs, the downloaded MP4 is temporary by default. The CLI deletes it after probe, transcription, keyframe extraction, and OCR finish, then records the result in `report.md`, `report.json`, and `summary-input.md`. Use `--keep-video` only when the user needs to inspect or archive the original downloaded file. Local source files are never deleted.
+
 For remote URLs, evidence acquisition order is mandatory:
 
 1. Run `watchvideo analyze`, which tries plain `yt-dlp`.

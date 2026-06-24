@@ -12,6 +12,7 @@ source
   -> 字幕加载或 WhisperTranscriber 或 WhisperCppAutoSetup/WhisperCppTranscriber
   -> FfmpegClient.extract_keyframes，可限制数量
   -> 可选 TesseractOcr
+  -> 清理远程下载 MP4（默认）
   -> AnalysisReport
   -> report.json / report.md
 ```
@@ -22,7 +23,7 @@ source
   命令行入口。负责参数解析、调用分析器、写出成功报告或失败报告、生成摘要输入包和打印进程检查结果。
 
 - `watchvideo/analyzer.py`
-  编排层。负责决定先下载字幕、再下载视频、再加载字幕或转写、必要时准备 `whisper.cpp`、最后抽关键帧。这里不直接写下载、转写或抽帧细节。
+  编排层。负责决定先下载字幕、再下载视频、再加载字幕或转写、必要时准备 `whisper.cpp`、最后抽关键帧并按配置清理远程下载 MP4。这里不直接写下载、转写或抽帧细节，不删除用户本地输入文件。
 
 - `watchvideo/downloader.py`
   下载适配层。优先使用 `yt-dlp`；遇到 cookies/login/bot 拦截时用 `--cookies-from-browser chrome` 重试，`auto` 模式会按 chrome、chromium、edge、firefox 尝试；仍失败时用移动端 UA 抓分享页，先结构化解析 `window._ROUTER_DATA`、`RENDER_DATA` 和 `video.play_addr.url_list`，再用正则兜底查找 `play_addr` 和视频 URL，最后带 Referer 下载跳转后的 MP4。这里不打开浏览器 UI，并把每个下载阶段写入 `DownloadAttempt` 诊断。
@@ -43,16 +44,16 @@ source
   OCR 入口。当前只在用户传 `--ocr` 时调用 `tesseract`，并只处理已经抽出的关键帧。
 
 - `watchvideo/summarizer.py`
-  摘要输入包生成器。读取 `report.json` 字典，把元信息、警告、下载诊断、转写信息、关键帧时间戳、OCR 和字幕分段整理成 Markdown，并写入证据优先的总结要求，不调用 LLM。
+  摘要输入包生成器。读取 `report.json` 字典，把元信息、警告、下载诊断、清理记录、转写信息、关键帧时间戳、OCR 和字幕分段整理成 Markdown，并写入证据优先的总结要求，不调用 LLM。
 
 - `watchvideo/processes.py`
   进程检查。扫描 `watchvideo`、`yt-dlp`、`ffmpeg`、`whisper-cli` 等相关命令，只报告不清理。
 
 - `watchvideo/reporting.py`
-  报告写出。成功时生成 `report.json` 和 `report.md`；失败时生成 `failure.json` 和 `failure.md`。Markdown 报告面向人阅读，包含证据质量和时间线速览，不逐张列出关键帧；关键帧明细保留在 JSON。
+  报告写出。成功时生成 `report.json` 和 `report.md`；失败时生成 `failure.json` 和 `failure.md`。Markdown 报告面向人阅读，包含证据质量、时间线速览和清理记录，不逐张列出关键帧；关键帧明细保留在 JSON。
 
 - `watchvideo/models.py`
-  数据模型。集中定义 source、media、subtitle、keyframe、download attempt、transcription info、report 等结构。
+  数据模型。集中定义 source、media、subtitle、keyframe、download attempt、cleanup record、transcription info、report 等结构。
 
 ## 大模型能力边界
 
