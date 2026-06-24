@@ -9,7 +9,7 @@ description: Use when the user asks to watch, analyze, summarize, transcribe, OC
 
 Use `watchvideo` to turn video into evidence, then synthesize from the report, transcript, and keyframes.
 
-The CLI prepares evidence, including local ASR; the Agent reads it, writes understanding, and persists it to `report.md` when requested or when the report exists.
+The CLI prepares evidence, including local ASR; the Agent reads it and persists summary/analysis results to `report.md` by default.
 
 ## Routing Boundaries
 
@@ -32,7 +32,7 @@ Do not use this skill for:
 2. Keep analysis outputs in the user's current workspace, unless the user confirms another path. The CLI may cache `whisper.cpp` under `.tools/`. For command details, read `references/workflow.md`.
 3. Run or inspect analysis, then read generated artifacts before summarizing. For artifact priority and output rules, read `references/artifacts.md`.
 4. If tools, subtitles, OCR, downloads, or long-running processes fail, read `references/troubleshooting.md`.
-5. When a `report.md` exists and you produce the final video understanding, write the summary into its `视频内容总结` section. You may use `scripts/update_report_summary.py`.
+5. For 总结/分析/看懂/讲了什么 requests, when `report.md` exists, you must write final understanding into `## 视频内容总结` unless the user explicitly asks not to write files. You may use `scripts/update_report_summary.py`.
 
 ## Evidence Rules
 
@@ -57,5 +57,5 @@ Do not use this skill for:
 
 - Stopping after `analyze` without reading the evidence files.
 - Treating noisy ASR text as exact quotes without caveats.
-- Leaving the final summary only in chat when `report.md` is the durable output.
+- Leaving a summary/analysis answer only in chat when `report.md` exists.
 - Running OCR by default; enable only when visual text matters.

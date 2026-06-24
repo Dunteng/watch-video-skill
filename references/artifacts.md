@@ -60,7 +60,7 @@ Keep wording in Chinese unless the user asks otherwise.
 
 ## Persisting The Result
 
-When `report.md` exists, final understanding should be written into the `## 视频内容总结` section. If the section does not exist, insert it before `## 关键帧` or before the transcript section.
+For 总结/分析/看懂/讲了什么 requests, when `report.md` exists, the Agent must write final understanding into the `## 视频内容总结` section unless the user explicitly asks not to write files. If the section does not exist, insert it before `## 关键帧` or before the transcript section.
 
 Use the helper script from the skill repository root:
 
