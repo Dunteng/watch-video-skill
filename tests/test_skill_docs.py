@@ -33,6 +33,17 @@ class SkillDocsTests(unittest.TestCase):
         self.assertIn("mirror it to `outputs/`", combined)
         self.assertIn("普通提问和文档提问输出质量一致", combined)
 
+    def test_public_readme_keeps_promotion_entry_points(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        promotion = (ROOT / "docs" / "PROMOTION.md").read_text(encoding="utf-8")
+        examples = (ROOT / "examples" / "README.md").read_text(encoding="utf-8")
+
+        self.assertIn("Evidence-first video understanding skill for Codex", readme)
+        self.assertIn("examples/technical-interview-summary.md", readme)
+        self.assertIn("docs/PROMOTION.md", readme)
+        self.assertIn("No video evidence -> no summary", promotion)
+        self.assertIn("脱敏演示材料", examples)
+
 
 if __name__ == "__main__":
     unittest.main()

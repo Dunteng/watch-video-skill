@@ -1,8 +1,52 @@
 # watchvideo
 
-`watchvideo` 是一个 **Codex skill + 本地视频分析 CLI**。它把本地视频或网络视频链接整理成可读证据，再由 Codex 基于报告、字幕、转写和关键帧完成总结。
+**Evidence-first video understanding skill for Codex.**
+
+`watchvideo` 是一个 **Codex skill + 本地视频分析 CLI**。它把本地视频或网络视频链接整理成可验证证据，再让 Codex 基于报告、字幕、转写、OCR 和关键帧写总结。拿不到视频证据时，它要求 Agent 停下来说明阻塞原因，而不是靠标题、简介或搜索结果猜内容。
 
 **核心边界：CLI 负责准备证据，Agent 负责理解和写总结。** 这个项目不内置云端 LLM 摘要，也不是视频剪辑、转码或播放器工具。
+
+## 为什么做这个
+
+通用 Agent 很容易在“总结这个视频”时走捷径：读取 URL、标题、简介或搜索结果，然后给出一段看似合理的归纳。`watchvideo` 把这条捷径关掉：它要求先下载或读取视频，抽取字幕/转写、关键帧和 OCR，再把证据整理成 Agent 友好的报告。
+
+适合这些场景：
+
+- 想让 Codex 总结技术视频、面试视频、教程视频或产品演示；
+- 想保留可追溯的 `report.md` / `summary-input.md`，而不是只得到一段聊天答案；
+- 遇到 Douyin/TikTok/短视频链接时，需要看到下载诊断，而不是一句“下载失败”；
+- 需要一个长期可复用、可测试、可分享的 Agent skill。
+
+## 快速体验
+
+```bash
+mkdir -p ~/.codex/skills
+git clone https://github.com/Dunteng/watch-video-skill ~/.codex/skills/watch-video
+cd ~/.codex/skills/watch-video
+python3 -m watchvideo doctor
+```
+
+在 Codex 里直接说：
+
+```text
+用 $watch-video 总结这个视频：https://example.com/video
+```
+
+CLI 会生成证据包，Agent 读取后输出文档级总结。示例输出见：
+
+- [examples/technical-interview-summary.md](examples/technical-interview-summary.md)
+- [examples/failure-report.md](examples/failure-report.md)
+
+## 它和普通视频摘要工具的区别
+
+| 能力 | watchvideo 的做法 |
+| --- | --- |
+| 证据边界 | 没有 MP4、字幕/转写或关键帧时不总结 |
+| 下载诊断 | 记录普通 `yt-dlp`、浏览器 cookies、SSR `play_addr`、直链下载每一步 |
+| 本地转写 | 没字幕时尝试系统 `whisper`，必要时自动准备 `.tools/whisper.cpp` |
+| 视觉校正 | 抽关键帧，可选 OCR，用画面校正术语、屏幕文字和 ASR 错词 |
+| Agent 输出 | 生成 `report.md`、`report.json`、`summary-input.md`，方便 Codex 写可追溯总结 |
+| 清理策略 | 远程下载 MP4 默认分析后删除，本地输入文件不删除 |
 
 ## 功能
 
@@ -276,6 +320,8 @@ python3 -m watchvideo doctor
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)：模块边界和数据流。
 - [docs/OPERATIONS.md](docs/OPERATIONS.md)：本地操作、转写、OCR 和进程检查。
 - [docs/PUBLISHING.md](docs/PUBLISHING.md)：发布到 GitHub 前的检查清单。
+- [docs/PROMOTION.md](docs/PROMOTION.md)：公开宣传定位、发布文案和 demo 脚本。
+- [examples/](examples/)：脱敏示例报告和下载诊断。
 - [evals/skill_scenarios.md](evals/skill_scenarios.md)：Agent 行为评估场景。
 
 ## 维护和发布
@@ -289,5 +335,6 @@ python3 -m watchvideo doctor
 - `tests/`
 - `evals/`
 - `docs/`
+- `examples/`
 
 公开发布前，确认没有提交真实视频、音频、字幕、关键帧、转写报告、Cookie、token、`.env`、私有链接或用户 Obsidian 笔记。

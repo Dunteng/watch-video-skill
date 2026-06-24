@@ -11,6 +11,7 @@
 - `tests/`
 - `evals/`
 - `docs/`
+- `examples/`
 - `README.md`
 - `pyproject.toml`
 - `.gitignore`
@@ -54,9 +55,10 @@ git status --short --ignored
 ## 公开仓库注意事项
 
 - 不要把示例链接换成真实视频链接，除非确认链接可公开、可复现且不含隐私。
-- 不要把 `analysis/` 里的报告作为 fixture 提交；需要 fixture 时使用脱敏短样本。
+- 不要把 `analysis/` 里的报告作为 fixture 提交；需要 fixture 时使用脱敏短样本或 `examples/` 中的虚构示例。
 - README 应明确：CLI 准备证据，最终理解由 Agent 读取证据后完成。
 - 修改 `SKILL.md` 或 `references/` 后，应同步更新 `evals/skill_scenarios.md`。
+- 修改公开定位、示例或社区文案后，应同步更新 `docs/PROMOTION.md`。
 
 ## 版本发布建议
 
