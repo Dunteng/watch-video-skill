@@ -1,30 +1,30 @@
 # Promotion Kit
 
-本文是 `watchvideo` 的公开宣传素材和发布执行清单。目标是让开发者快速理解它不是普通视频摘要工具，而是一个**证据优先的视频理解 skill**。
+This file contains public launch copy, positioning, and distribution checklists for `watchvideo`. The goal is to make developers quickly understand that this is not a generic video summarizer; it is an **evidence-first video understanding skill**.
 
-## 一句话定位
+## One-Line Positioning
 
-英文：
+English:
 
 ```text
 Evidence-first video understanding skill for Codex: download, transcribe, keyframe, OCR, and summarize only from evidence.
 ```
 
-中文：
+Chinese:
 
 ```text
 一个让 Codex 真正“先拿证据再总结”的视频理解 skill：下载、转写、抽关键帧、OCR，拿不到证据就不瞎猜。
 ```
 
-## GitHub 仓库包装
+## GitHub Repository Packaging
 
-建议仓库 description：
+Suggested repository description:
 
 ```text
 Evidence-first video understanding skill for Codex: yt-dlp, Douyin SSR fallback, local whisper.cpp, keyframes, OCR, and grounded reports.
 ```
 
-建议 GitHub topics：
+Suggested GitHub topics:
 
 ```text
 codex
@@ -41,49 +41,49 @@ keyframes
 evidence-first
 ```
 
-README 首屏需要持续满足：
+The README first screen should keep satisfying these requirements:
 
-- 10 秒内说明：这是 Codex skill + 本地 CLI。
-- 明确差异：**不基于标题、简介、搜索结果总结**。
-- 有安装命令、最短使用 prompt 和示例报告链接。
-- 有失败报告示例，展示拿不到证据时如何停止。
-- 有限制说明，避免宣传成“支持任何视频”。
+- Explain within 10 seconds that this is a Codex skill plus local CLI.
+- Make the key difference explicit: **do not summarize from title, description, or search results**.
+- Include install commands, the shortest usable prompt, and example report links.
+- Include a failure-report example showing how the workflow stops without evidence.
+- State limitations clearly; do not imply that every video platform is supported.
 
-## Demo 视频脚本
+## Demo Video Script
 
-建议录一个 45-60 秒 GIF 或短视频，放到 README 顶部或社交帖里。
+Record a 45-60 second GIF or short video for the README and social posts.
 
-当前可用公开 demo 链接：
+Current public demo URL:
 
 ```text
 https://www.youtube.com/watch?v=J6CHZWoygeM
 ```
 
-本地验证结果（2026-06-24）：
+Local verification result on 2026-06-24:
 
-- 标题：`The React + AI Stack for 2026`
-- 时长：`00:06:40`
-- 普通 `yt-dlp` 被 YouTube bot 校验拦截；
-- CLI 使用 Chrome cookies 重试成功；
-- 平台字幕下载失败，随后用本地 `whisper.cpp` `base` 模型转写；
-- 抽取 `23` 张关键帧；
-- 远程下载 MP4 已按默认策略删除；
-- 分析目录：`analysis/demo-youtube-j6chzwoygem`，该目录被 `.gitignore` 忽略，不应提交。
+- Title: `The React + AI Stack for 2026`
+- Duration: `00:06:40`
+- Plain `yt-dlp` was blocked by YouTube bot verification.
+- The CLI retried with Chrome cookies and succeeded.
+- Platform subtitle download failed, then local `whisper.cpp` with the `base` model transcribed the audio.
+- `23` keyframes were extracted.
+- The remote MP4 was deleted by the default cleanup policy.
+- Analysis directory: `analysis/demo-youtube-j6chzwoygem`; it is ignored by `.gitignore` and should not be committed.
 
-### 分镜
+### Shot List
 
-1. `0-8s`：展示 prompt。
+1. `0-8s`: Show the prompt.
 
    ```text
-   用 $watch-video 总结这个技术视频：https://example.com/video
+   Use $watch-video to summarize this technical video: https://example.com/video
    ```
 
-2. `8-18s`：展示 CLI 运行，重点扫过 `yt-dlp`、转写、关键帧、`report.md`。
-3. `18-30s`：打开 `report.md`，展示 `证据质量`、`下载诊断`、`转写信息`。
-4. `30-45s`：展示最终 `视频内容总结`，包含“一句话总结 / 视频主线 / 核心概念拆解 / 面试回答模板”。
-5. `45-60s`：展示失败报告一句话：`不要基于标题、简介或搜索结果总结视频内容。`
+2. `8-18s`: Show the CLI run, especially `yt-dlp`, transcription, keyframes, and `report.md`.
+3. `18-30s`: Open `report.md`, showing evidence quality, download diagnostics, and transcription metadata.
+4. `30-45s`: Show the final video summary with one-sentence summary, throughline, concepts, and interview template.
+5. `45-60s`: Show the failure-report rule: `Do not summarize from title, description, or search results.`
 
-### 屏幕上要出现的关键词
+### On-Screen Keywords
 
 - Evidence-first
 - report.md
@@ -94,13 +94,13 @@ https://www.youtube.com/watch?v=J6CHZWoygeM
 
 ## Show HN
 
-标题：
+Title:
 
 ```text
 Show HN: A Codex skill that makes agents watch videos before summarizing them
 ```
 
-首条评论：
+First comment:
 
 ```text
 I built this because I kept seeing agents summarize videos from titles, descriptions, or search results instead of actual video evidence.
@@ -120,13 +120,13 @@ It is not a video editor, and it does not call a cloud LLM by itself. The CLI pr
 
 ## Reddit / r/codex
 
-标题：
+Title:
 
 ```text
 I made a Codex skill that refuses to summarize videos without evidence
 ```
 
-正文：
+Body:
 
 ```text
 I built watchvideo, a Codex skill + local CLI for evidence-first video analysis.
@@ -182,7 +182,11 @@ Repo:
 https://github.com/Dunteng/watch-video-skill
 ```
 
-## V2EX
+## Chinese Community Copy
+
+Use this section for V2EX, Jike, Zhihu, WeChat, or other Chinese-speaking communities.
+
+### V2EX
 
 标题：
 
@@ -213,15 +217,15 @@ https://github.com/Dunteng/watch-video-skill
 2. 不同平台的视频下载/转写失败时，失败报告是否足够清楚。
 ```
 
-## Awesome List PR 文案
+## Awesome List PR Copy
 
-标题：
+Title:
 
 ```text
 Add watchvideo evidence-first video analysis skill
 ```
 
-正文：
+Body:
 
 ```text
 This PR adds watchvideo, a Codex skill + local CLI for evidence-first video analysis.
@@ -231,27 +235,27 @@ It helps Codex summarize videos only after producing evidence: downloaded/local 
 Repository: https://github.com/Dunteng/watch-video-skill
 ```
 
-## 发布节奏
+## Launch Sequence
 
-1. GitHub README 和 examples 准备好。
-2. 设置 repo description 和 topics。
-3. 发一个 GitHub release，例如 `v0.1.0`。
-4. 录制 45-60 秒 demo GIF。
-5. 先投 awesome list，再发社区帖。
-6. 社区帖里请求具体反馈：下载失败样本、skill 指令漏洞、报告结构。
-7. 根据反馈开 issues，快速修第一批真实问题。
+1. Prepare the GitHub README and examples.
+2. Set the repository description and topics.
+3. Publish a GitHub release such as `v0.1.0`.
+4. Record a 45-60 second demo GIF.
+5. Submit to awesome lists before posting broadly to communities.
+6. Ask for concrete feedback: download failure samples, skill loopholes, and report structure.
+7. Turn feedback into issues and fix the first real problems quickly.
 
-## 不要这样宣传
+## What Not To Claim
 
-- 不要说“支持任何视频”。
-- 不要说“完全自动理解所有平台视频”。
-- 不要上传真实用户视频、字幕、关键帧、cookie 或私有链接。
-- 不要只宣传“视频总结”，这个定位太泛。
-- 不要回避限制：平台反爬、依赖 `yt-dlp` / `ffmpeg`、无证据时会停止。
+- Do not say "supports any video."
+- Do not say "fully understands every platform automatically."
+- Do not upload real user videos, subtitles, keyframes, cookies, or private links.
+- Do not market it only as "video summarization"; that positioning is too generic.
+- Do not hide limitations: platform anti-bot checks, `yt-dlp` / `ffmpeg` dependencies, and no-evidence stops.
 
-## 需要用户配合的素材
+## Materials Needed From The Maintainer
 
-- 一段可公开的视频 URL，最好是技术/面试/教程类。
-- 一张或一段 README 顶部 demo GIF。
-- GitHub repo topics 和 description 需要仓库 owner 在 GitHub 页面设置，或确认后用 GitHub CLI/API 设置。
-- 如果要发 Show HN，需要用户本人账号发帖，避免看起来像代发广告。
+- A public video URL, preferably technical, interview, or tutorial content.
+- A README-top demo GIF or short screen recording.
+- Repository topics and description set from the owner account or authorized GitHub CLI/API session.
+- Show HN should be posted from the maintainer's own account, not by a proxy account.

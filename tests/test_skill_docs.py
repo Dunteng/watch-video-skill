@@ -39,10 +39,26 @@ class SkillDocsTests(unittest.TestCase):
         examples = (ROOT / "examples" / "README.md").read_text(encoding="utf-8")
 
         self.assertIn("Evidence-first video understanding skill for Codex", readme)
-        self.assertIn("examples/technical-interview-summary.md", readme)
+        self.assertIn("[中文](README.zh-CN.md)", readme)
+        self.assertIn("examples/technical-interview-summary.en.md", readme)
         self.assertIn("docs/PROMOTION.md", readme)
         self.assertIn("No video evidence -> no summary", promotion)
-        self.assertIn("脱敏演示材料", examples)
+        self.assertIn("sanitized demo materials", examples)
+
+    def test_public_docs_are_english_first_without_dropping_chinese_materials(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        promotion = (ROOT / "docs" / "PROMOTION.md").read_text(encoding="utf-8")
+
+        self.assertIn("## Why This Exists", readme)
+        self.assertIn("## Quick Start", readme)
+        self.assertIn("## Chinese Community Copy", promotion)
+        self.assertTrue((ROOT / "examples" / "technical-interview-summary.en.md").exists())
+        self.assertTrue((ROOT / "examples" / "technical-interview-summary.zh.md").exists())
+        self.assertTrue((ROOT / "examples" / "failure-report.en.md").exists())
+        self.assertTrue((ROOT / "examples" / "failure-report.zh.md").exists())
+
+        publishing = (ROOT / "docs" / "PUBLISHING.md").read_text(encoding="utf-8")
+        self.assertIn("README.zh-CN.md", publishing)
 
 
 if __name__ == "__main__":

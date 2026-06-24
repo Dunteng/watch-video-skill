@@ -1,23 +1,29 @@
 # watchvideo
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 **Evidence-first video understanding skill for Codex.**
 
-`watchvideo` 是一个 **Codex skill + 本地视频分析 CLI**。它把本地视频或网络视频链接整理成可验证证据，再让 Codex 基于报告、字幕、转写、OCR 和关键帧写总结。拿不到视频证据时，它要求 Agent 停下来说明阻塞原因，而不是靠标题、简介或搜索结果猜内容。
+`watchvideo` is a **Codex skill plus a local video-analysis CLI**. It turns local video files or video URLs into verifiable evidence, then lets Codex summarize from reports, transcripts, OCR, and keyframes. If it cannot produce video evidence, the agent should stop and explain the blocker instead of guessing from the title, description, or search results.
 
-**核心边界：CLI 负责准备证据，Agent 负责理解和写总结。** 这个项目不内置云端 LLM 摘要，也不是视频剪辑、转码或播放器工具。
+**Boundary:** the CLI prepares evidence; the agent reads that evidence and writes the final understanding. This project does not call a cloud LLM by itself, and it is not a video editor, transcoder, publisher, or player.
 
-## 为什么做这个
+## Why This Exists
 
-通用 Agent 很容易在“总结这个视频”时走捷径：读取 URL、标题、简介或搜索结果，然后给出一段看似合理的归纳。`watchvideo` 把这条捷径关掉：它要求先下载或读取视频，抽取字幕/转写、关键帧和 OCR，再把证据整理成 Agent 友好的报告。
+General-purpose agents often take a shortcut when asked to summarize a video: they read the URL, page title, description, or search results and produce a plausible answer. That is useful-looking, but it is not video understanding.
 
-适合这些场景：
+`watchvideo` closes that shortcut. It requires the workflow to first download or read the video, obtain subtitles or local transcription, extract keyframes, optionally run OCR, and then write evidence packages that an agent can inspect.
 
-- 想让 Codex 总结技术视频、面试视频、教程视频或产品演示；
-- 想保留可追溯的 `report.md` / `summary-input.md`，而不是只得到一段聊天答案；
-- 遇到 Douyin/TikTok/短视频链接时，需要看到下载诊断，而不是一句“下载失败”；
-- 需要一个长期可复用、可测试、可分享的 Agent skill。
+Use it when you want to:
 
-## 快速体验
+- summarize technical talks, interview-prep videos, tutorials, demos, or product walkthroughs;
+- keep traceable `report.md` and `summary-input.md` files instead of only a chat answer;
+- debug Douyin/TikTok/YouTube download failures with explicit diagnostics;
+- share a reusable, testable agent skill instead of a one-off prompt.
+
+## Quick Start
+
+Install the skill into Codex:
 
 ```bash
 mkdir -p ~/.codex/skills
@@ -26,78 +32,70 @@ cd ~/.codex/skills/watch-video
 python3 -m watchvideo doctor
 ```
 
-在 Codex 里直接说：
+Restart your Codex session so `$watch-video` is discovered, then ask:
+
+```text
+Use $watch-video to summarize this video: https://example.com/video
+```
+
+Chinese prompts work too:
 
 ```text
 用 $watch-video 总结这个视频：https://example.com/video
 ```
 
-CLI 会生成证据包，Agent 读取后输出文档级总结。示例输出见：
+The CLI prepares evidence. Codex reads the artifacts and writes the final summary. Example outputs:
 
-- [examples/technical-interview-summary.md](examples/technical-interview-summary.md)
-- [examples/failure-report.md](examples/failure-report.md)
+- [examples/technical-interview-summary.en.md](examples/technical-interview-summary.en.md)
+- [examples/failure-report.en.md](examples/failure-report.en.md)
+- [examples/download-diagnostics.en.md](examples/download-diagnostics.en.md)
 
-## 它和普通视频摘要工具的区别
+Chinese examples are also available under `examples/*.zh.md`.
 
-| 能力 | watchvideo 的做法 |
+## How It Differs From Generic Video Summarizers
+
+| Capability | What `watchvideo` does |
 | --- | --- |
-| 证据边界 | 没有 MP4、字幕/转写或关键帧时不总结 |
-| 下载诊断 | 记录普通 `yt-dlp`、浏览器 cookies、SSR `play_addr`、直链下载每一步 |
-| 本地转写 | 没字幕时尝试系统 `whisper`，必要时自动准备 `.tools/whisper.cpp` |
-| 视觉校正 | 抽关键帧，可选 OCR，用画面校正术语、屏幕文字和 ASR 错词 |
-| Agent 输出 | 生成 `report.md`、`report.json`、`summary-input.md`，方便 Codex 写可追溯总结 |
-| 清理策略 | 远程下载 MP4 默认分析后删除，本地输入文件不删除 |
+| Evidence boundary | No MP4, transcript, or keyframes means no content summary |
+| Download diagnostics | Records plain `yt-dlp`, browser-cookie retry, SSR `play_addr`, and direct download steps |
+| Local transcription | Uses system `whisper` first, then auto-prepares `.tools/whisper.cpp` when needed |
+| Visual grounding | Extracts keyframes and can run OCR to verify screen text and ASR errors |
+| Agent handoff | Writes `report.md`, `report.json`, and `summary-input.md` for Codex to inspect |
+| Cleanup | Deletes remote MP4 downloads after analysis by default; never deletes local source videos |
 
-## 功能
+## Features
 
-脚本可以自动处理：
+The CLI can automatically:
 
-- 下载 `yt-dlp` 支持的视频链接；
-- `yt-dlp` 失败时结构化解析移动端分享页 SSR 里的 `_ROUTER_DATA` / `RENDER_DATA` / `play_addr` 视频直链；
-- 在报告里记录普通下载、浏览器 cookies 重试、SSR 解析和直链下载的诊断；
-- 下载平台字幕或自动字幕；
-- 探测视频时长、分辨率等元信息；
-- 解析 `.srt` / `.vtt` 字幕；
-- 没有字幕时调用系统 `whisper`，必要时自动准备 `.tools/whisper.cpp` 转写；
-- 抽取关键帧，并跳过高度相似的重复画面；
-- 生成带证据质量、时间线速览和转写信息的 `report.json` / `report.md`；
-- 生成面向 Agent 阅读的 `summary-input.md`，包含总结写作要求、技术/面试类默认报告结构、转写信息、关键帧时间戳和分段字幕；
-- 检查疑似残留的高负载进程。
+- download video URLs supported by `yt-dlp`;
+- retry `yt-dlp` with browser cookies when platforms require login or bot verification;
+- structurally parse mobile share-page SSR data such as `_ROUTER_DATA`, `RENDER_DATA`, and `play_addr` URLs when `yt-dlp` fails;
+- record every download attempt in the final report;
+- download platform subtitles or auto-subtitles;
+- probe duration, resolution, and media metadata;
+- parse `.srt` and `.vtt` subtitles;
+- use system `whisper`, or auto-prepare local `.tools/whisper.cpp`, when subtitles are missing;
+- extract keyframes and skip highly similar frames;
+- generate `report.json`, `report.md`, and `summary-input.md`;
+- check for likely leftover high-load processes.
 
-脚本可以按需处理：
+Optional capabilities:
 
-- 使用 `tesseract` 对关键帧做 OCR；
-- 限制关键帧数量，避免长视频产物过大。
+- run `tesseract` OCR on keyframes;
+- limit the number of keyframes for long videos;
+- keep downloaded remote MP4 files with `--keep-video`.
 
-脚本不会自动处理：
+The CLI does not:
 
-- 云端 LLM 总结；
-- 视频剪辑、压缩、转码、发布；
-- 完整场景检测；
-- 自动结束进程。
-- 打开 Chrome 页面或操作浏览器 UI。
+- call OpenAI, Claude, Gemini, or any other cloud LLM;
+- edit, cut, compress, transcode, publish, or play videos;
+- guarantee that every platform can be downloaded;
+- open Chrome UI or operate the browser interface;
+- kill processes automatically.
 
-## 安装为 Codex Skill
+## Requirements
 
-把仓库放到 Codex skills 目录：
-
-```bash
-mkdir -p ~/.codex/skills
-git clone https://github.com/Dunteng/watch-video-skill ~/.codex/skills/watch-video
-```
-
-更新已安装版本：
-
-```bash
-cd ~/.codex/skills/watch-video
-git pull
-```
-
-安装或更新后，**重启 Codex 会话**，让 Codex 重新发现 `$watch-video`。
-
-## 系统依赖
-
-必需工具：
+Required tools:
 
 ```bash
 python3
@@ -106,13 +104,13 @@ ffmpeg
 ffprobe
 ```
 
-macOS 可以用 Homebrew 安装：
+macOS:
 
 ```bash
 brew install yt-dlp ffmpeg
 ```
 
-可选工具：
+Optional tools:
 
 ```bash
 git
@@ -122,45 +120,43 @@ whisper
 tesseract
 ```
 
-`git` 和 `bash` 用于在没有可用字幕时自动准备本 skill 私有的 `.tools/whisper.cpp`。如果系统没有 `cmake`，CLI 会尝试在 `.tools/.venv` 安装本地 `cmake` wheel；这些准备步骤失败时，有字幕的视频仍可分析，无字幕视频会在报告里记录转写限制。
+`git` and `bash` are used when the CLI needs to prepare local `whisper.cpp`. If system `cmake` is missing, the CLI tries a local `.tools/.venv` fallback. Missing optional tools do not block videos that already have usable subtitles, but they may limit transcription or OCR.
 
-检查环境：
+Check the environment:
 
 ```bash
 cd ~/.codex/skills/watch-video
 python3 -m watchvideo doctor
 ```
 
-`doctor` 输出含义：
+`doctor` output:
 
-- `REQUIRED_OK`：必需工具可用；
-- `REQUIRED_MISSING`：必须先安装，否则分析流程会失败；
-- `OPTIONAL_OK`：可选能力可用；
-- `OPTIONAL_MISSING`：可选能力不可用，但主流程可以继续；无字幕视频可能无法完成本地转写或 OCR。
+- `REQUIRED_OK`: required tool is available;
+- `REQUIRED_MISSING`: install this before analysis;
+- `OPTIONAL_OK`: optional capability is available;
+- `OPTIONAL_MISSING`: workflow can continue, but transcription or OCR may be limited.
 
-## 用 Codex 分析视频
+## Use With Codex
 
-在 Codex 里直接请求：
-
-```text
-用 $watch-video 分析这个视频：https://example.com/video
-```
-
-或：
+Ask Codex directly:
 
 ```text
-用 $watch-video 总结这个本地视频：/path/to/video.mp4
+Use $watch-video to analyze this video: https://example.com/video
 ```
 
-Agent 会按 skill 流程运行 CLI、读取证据文件、输出总结。只要请求是总结、分析、看懂或“讲了什么”，Agent 默认给出**文档级总结**，并在已有 `report.md` 时把最终总结写回 `## 视频内容总结`；如果当前环境有 `outputs/` 这类用户可见目录，也会同步生成 Markdown 交付文件。只有你明确要求不要写文件时才跳过。网络视频的下载 MP4 默认在分析完成后删除，本地输入文件不会被删除。
+or:
 
-**不要只凭视频 URL、标题、简介或搜索结果总结。** 这个 skill 要求先生成或读取分析产物，再基于 MP4、字幕/转写、OCR 和关键帧证据下结论。技术类、面试类、教程类或方法论类视频默认生成可复用的技术备稿：一句话总结、视频主线、核心概念拆解、常见误区、可执行方法、面试回答模板、转写校正说明。最终总结应优先使用时间戳、关键帧或 OCR 作为依据；证据不足的专名、数字、术语和画面内容要标为需确认，缺少证据的章节保留标题并写“视频未明确提到”。遇到 cookies 拦截时 CLI 会直接用 Chrome cookies 重试；拿不到证据时应说明下载阻塞，并要求用户提供本地视频或可访问直链。
+```text
+Use $watch-video to summarize this local video: /path/to/video.mp4
+```
 
-如果分析失败，CLI 会在输出目录写入 `failure.md` 和 `failure.json`。Agent 应读取失败报告里的下载诊断，只说明阻塞原因和下一步需要的证据。
+For summarize/analyze/watch/what-is-this-video-about requests, the agent should run or inspect the CLI artifacts before answering. If `report.md` exists, the final understanding should be written into the `## 视频内容总结` section unless the user explicitly asks not to write files.
 
-## 手动运行 CLI
+**Do not summarize only from a URL, title, description, search result, or same-topic article.** The summary must be grounded in MP4 evidence, subtitles/transcripts, OCR, and keyframes. If evidence is missing, report the blocker and ask for a local video file or an accessible direct URL.
 
-如果不通过 Codex，也可以手动运行。建议先保存用户工作目录，再从 skill 仓库运行 CLI，并把输出写回当前工作区：
+## Manual CLI Usage
+
+If you are not using Codex, run the CLI manually from the skill repository. Save the original workspace first and write outputs back into that workspace:
 
 ```bash
 TASK_WORKDIR="$(pwd)"
@@ -169,7 +165,7 @@ python3 -m watchvideo analyze "https://example.com/video" \
   -o "$TASK_WORKDIR/analysis/demo"
 ```
 
-本地视频：
+Local file:
 
 ```bash
 TASK_WORKDIR="$(pwd)"
@@ -178,7 +174,7 @@ python3 -m watchvideo analyze "$TASK_WORKDIR/video.mp4" \
   -o "$TASK_WORKDIR/analysis/local-video"
 ```
 
-常用参数：
+Typical higher-signal run:
 
 ```bash
 python3 -m watchvideo analyze "https://example.com/video" \
@@ -190,7 +186,7 @@ python3 -m watchvideo analyze "https://example.com/video" \
   -o "$TASK_WORKDIR/analysis/demo"
 ```
 
-远程下载的 MP4 默认会在探测、转写、抽帧和 OCR 完成后删除；`report.md` 和 `summary-input.md` 会记录清理结果。需要保留原始下载文件时加：
+Remote MP4 downloads are temporary by default. They are deleted after probe, transcription, keyframe extraction, and OCR finish. `report.md` and `summary-input.md` record the cleanup. Keep the downloaded MP4 only when needed:
 
 ```bash
 python3 -m watchvideo analyze "https://example.com/video" \
@@ -198,23 +194,21 @@ python3 -m watchvideo analyze "https://example.com/video" \
   -o "$TASK_WORKDIR/analysis/demo"
 ```
 
-默认遇到 cookies/login/bot 拦截时，会用 `yt-dlp --cookies-from-browser chrome` 重试，不会打开 Chrome 页面。需要关闭时加：
+Browser-cookie behavior:
 
 ```bash
+# Disable browser-cookie retry.
 python3 -m watchvideo analyze "https://example.com/video" \
   --no-browser-cookies \
   -o "$TASK_WORKDIR/analysis/demo"
-```
 
-需要自动尝试多个浏览器 cookies 时加：
-
-```bash
+# Try chrome, chromium, edge, then firefox.
 python3 -m watchvideo analyze "https://example.com/video" \
   --cookies-from-browser auto \
   -o "$TASK_WORKDIR/analysis/demo"
 ```
 
-生成摘要输入包：
+Generate the summary input packet:
 
 ```bash
 python3 -m watchvideo summarize "$TASK_WORKDIR/analysis/demo/report.json" \
@@ -222,44 +216,44 @@ python3 -m watchvideo summarize "$TASK_WORKDIR/analysis/demo/report.json" \
   --chunk-seconds 300
 ```
 
-检查残留进程：
+Check likely leftover processes:
 
 ```bash
 python3 -m watchvideo processes
 ```
 
-## 输出产物
+## Artifacts
 
-一次分析通常会生成：
+A successful run normally creates:
 
-- `report.json`：结构化报告，适合程序继续处理；
-- `report.md`：人类可读报告，包含元信息、证据质量、时间线速览、下载诊断、清理记录、转写信息、字幕文本和可选总结；
-- `summary-input.md`：面向 Agent 的摘要输入包，包含总结写作要求、技术/面试类默认报告结构、下载诊断、清理记录、转写信息、关键帧时间戳和分段字幕；
-- `video/`：网络视频临时下载目录；默认分析完成后删除下载 MP4，使用 `--keep-video` 可保留；
-- `subtitles/`：平台字幕或自动字幕；
-- `transcript/`：本地转写结果；
-- `keyframes/`：关键帧图片。
+- `report.json`: structured report for programs and follow-up tooling;
+- `report.md`: human-readable report with metadata, evidence quality, timeline preview, download diagnostics, cleanup records, transcription metadata, transcript text, and optional summary;
+- `summary-input.md`: agent-friendly packet with writing requirements, report shape, download diagnostics, cleanup records, transcription metadata, keyframe timestamps, OCR, and chunked transcript;
+- `subtitles/`: platform subtitles or auto-subtitles;
+- `transcript/`: local transcription output;
+- `keyframes/`: extracted keyframe images;
+- `video/`: temporary remote download directory; remote MP4s are deleted by default unless `--keep-video` is used.
 
-如果没有拿到可分析证据，会生成：
+If no usable evidence can be produced:
 
-- `failure.json`：结构化失败原因和下载尝试；
-- `failure.md`：人类可读失败报告，明确禁止基于标题、简介或搜索结果总结。
+- `failure.json`: structured failure details and download attempts;
+- `failure.md`: human-readable failure report that explicitly forbids title/description/search-based summaries.
 
-**不要提交运行产物。** `.gitignore` 已忽略 `analysis/`、`.tools/`、`.models/`、媒体文件、模型文件、`.env` 和缓存目录。
+**Do not commit runtime artifacts.** `.gitignore` excludes `analysis/`, `.tools/`, `.models/`, media files, model files, `.env`, and cache directories.
 
-## 本地转写和 OCR
+## Local Transcription And OCR
 
-默认行为：
+Default behavior:
 
-- 优先使用平台字幕或旁路字幕；
-- 没有字幕时先尝试系统 PATH 上的 `whisper` CLI；
-- `whisper` 不可用或没有结果时，默认在 skill 仓库的 `.tools/whisper.cpp` 下 clone、下载 `base` 模型并构建 `whisper-cli`；
-- 系统没有 `cmake` 时，会尝试在 `.tools/.venv` 内准备本地 `cmake`，不修改系统环境；
-- `.tools/` 和模型文件已被 `.gitignore` 忽略，不应提交。
+- prefer platform or sidecar subtitles;
+- try the system `whisper` CLI when subtitles are missing;
+- if system `whisper` is unavailable or produces no cues, auto-prepare `.tools/whisper.cpp`, download the `base` model, and build `whisper-cli`;
+- if system `cmake` is missing, try a local `.tools/.venv` fallback;
+- never install system-level packages automatically.
 
-`report.md` 会记录 ASR 来源、模型、语言参数、是否使用 prompt，以及生成的逐字稿文件。
+`report.md` records the ASR source, model, language parameter, prompt usage, and transcript files.
 
-禁用自动准备：
+Disable automatic `whisper.cpp` setup:
 
 ```bash
 python3 -m watchvideo analyze "https://example.com/video" \
@@ -267,29 +261,29 @@ python3 -m watchvideo analyze "https://example.com/video" \
   -o "$TASK_WORKDIR/analysis/demo"
 ```
 
-把工具缓存放到自定义目录：
+Use a custom tools cache:
 
 ```bash
 python3 -m watchvideo analyze "https://example.com/video" \
   --tools-dir "$TASK_WORKDIR/.tools" \
-  --whisper-prompt "Agent, Codex, AI 编程" \
+  --whisper-prompt "Agent, Codex, AI coding" \
   --language zh \
   -o "$TASK_WORKDIR/analysis/demo"
 ```
 
-使用已经预装好的 `whisper.cpp`：
+Use preinstalled `whisper.cpp`:
 
 ```bash
 python3 -m watchvideo analyze "https://example.com/video" \
   --whisper-cpp-bin .tools/whisper.cpp/build/bin/whisper-cli \
   --whisper-model .tools/whisper.cpp/models/ggml-base.bin \
-  --whisper-prompt "Agent, Codex, AI 编程" \
+  --whisper-prompt "Agent, Codex, AI coding" \
   --language zh \
   --max-keyframes 80 \
   -o "$TASK_WORKDIR/analysis/demo"
 ```
 
-启用 OCR：
+Enable OCR:
 
 ```bash
 python3 -m watchvideo analyze "$TASK_WORKDIR/video.mp4" \
@@ -297,11 +291,11 @@ python3 -m watchvideo analyze "$TASK_WORKDIR/video.mp4" \
   -o "$TASK_WORKDIR/analysis/local-video"
 ```
 
-`tesseract` 缺失时，主流程会继续，只是不会识别画面文字。
+If `tesseract` is missing, the main workflow continues and records a warning.
 
-## 开发验证
+## Development Verification
 
-本项目使用标准库 `unittest`，不要求 `pytest`：
+The project uses stdlib `unittest`; `pytest` is not required.
 
 ```bash
 python3 -m unittest discover -s tests -v
@@ -309,24 +303,23 @@ python3 -m compileall watchvideo tests
 python3 -m watchvideo doctor
 ```
 
-下载链路有脱敏分享页 fixture，覆盖 `_ROUTER_DATA`、`play_addr.url_list`、`aweme/v1/playwm` 和 CDN MP4 跳转诊断。
+The downloader tests include sanitized share-page fixtures for `_ROUTER_DATA`, `play_addr.url_list`, `aweme/v1/playwm`, and CDN MP4 redirects.
 
-`doctor` 中不能出现 `REQUIRED_MISSING`。`OPTIONAL_MISSING` 可以接受，但会影响本地转写或 OCR 能力。
+`doctor` must not show `REQUIRED_MISSING`. `OPTIONAL_MISSING` is acceptable, but it affects transcription or OCR capabilities.
 
-如果 `OPTIONAL_MISSING git` 或 `OPTIONAL_MISSING bash` 出现，自动准备 `whisper.cpp` 会失败。`OPTIONAL_MISSING cmake` 会触发 `.tools/.venv` 兜底，只有本地 `cmake` 安装失败时才影响无字幕视频转写。
+## Documentation
 
-## 文档
+- [README.zh-CN.md](README.zh-CN.md): Chinese README.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): module boundaries and data flow.
+- [docs/OPERATIONS.md](docs/OPERATIONS.md): local operations, transcription, OCR, and process checks.
+- [docs/PUBLISHING.md](docs/PUBLISHING.md): public repository checklist.
+- [docs/PROMOTION.md](docs/PROMOTION.md): public positioning, launch copy, and demo script.
+- [examples/](examples/): sanitized example reports and download diagnostics.
+- [evals/skill_scenarios.md](evals/skill_scenarios.md): agent behavior scenarios.
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)：模块边界和数据流。
-- [docs/OPERATIONS.md](docs/OPERATIONS.md)：本地操作、转写、OCR 和进程检查。
-- [docs/PUBLISHING.md](docs/PUBLISHING.md)：发布到 GitHub 前的检查清单。
-- [docs/PROMOTION.md](docs/PROMOTION.md)：公开宣传定位、发布文案和 demo 脚本。
-- [examples/](examples/)：脱敏示例报告和下载诊断。
-- [evals/skill_scenarios.md](evals/skill_scenarios.md)：Agent 行为评估场景。
+## Maintenance And Publishing
 
-## 维护和发布
-
-作为长期通用 skill，仓库应保留：
+Keep these directories and files in the long-term reusable skill:
 
 - `SKILL.md`
 - `references/`
@@ -337,4 +330,4 @@ python3 -m watchvideo doctor
 - `docs/`
 - `examples/`
 
-公开发布前，确认没有提交真实视频、音频、字幕、关键帧、转写报告、Cookie、token、`.env`、私有链接或用户 Obsidian 笔记。
+Before publishing, confirm that the repository does not include real videos, audio, subtitles, keyframes, transcripts, cookies, tokens, `.env`, private links, or user Obsidian notes.

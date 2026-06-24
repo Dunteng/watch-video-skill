@@ -1,9 +1,17 @@
 # Examples
 
-这些示例是**脱敏演示材料**，用于展示 `watchvideo` 生成的报告风格和证据边界，不对应真实视频链接。
+These are **sanitized demo materials**. They show the report style and evidence boundaries that `watchvideo` is designed to produce, but they do not correspond to real private videos.
 
-- [technical-interview-summary.md](technical-interview-summary.md)：技术/面试类视频的文档级总结示例。
-- [failure-report.md](failure-report.md)：拿不到视频证据时的失败报告示例。
-- [download-diagnostics.md](download-diagnostics.md)：远程短视频下载诊断示例。
+English examples:
 
-公开宣传时可以引用这些文件，但不要把真实用户视频、字幕、截图、cookie、私有链接或 Obsidian 笔记提交到仓库。
+- [technical-interview-summary.en.md](technical-interview-summary.en.md): document-grade summary for a technical/interview video.
+- [failure-report.en.md](failure-report.en.md): failure report when no video evidence can be produced.
+- [download-diagnostics.en.md](download-diagnostics.en.md): remote short-video download diagnostics.
+
+Chinese examples:
+
+- [technical-interview-summary.zh.md](technical-interview-summary.zh.md)
+- [failure-report.zh.md](failure-report.zh.md)
+- [download-diagnostics.zh.md](download-diagnostics.zh.md)
+
+Use these files in public promotion. Do not commit real user videos, subtitles, screenshots, cookies, private links, or Obsidian notes.
