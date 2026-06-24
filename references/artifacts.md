@@ -62,6 +62,8 @@ Keep wording in Chinese unless the user asks otherwise.
 
 For 总结/分析/看懂/讲了什么 requests, when `report.md` exists, the Agent must write final understanding into the `## 视频内容总结` section unless the user explicitly asks not to write files. If the section does not exist, insert it before `## 关键帧` or before the transcript section.
 
+The final deliverable must be document-grade, not an abbreviated chat answer. When a current workspace has a user-facing `outputs/` directory or the host expects deliverable files, mirror it to `outputs/` as a Markdown summary using the same evidence-grounded structure.
+
 Use the helper script from the skill repository root:
 
 ```bash
